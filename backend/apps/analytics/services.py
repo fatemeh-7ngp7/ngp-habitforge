@@ -1,72 +1,61 @@
-"""
-Analytics service layer.
-All database-heavy aggregation lives here — views stay thin.
-"""
 from datetime import timedelta
-from django.db.models import Count, Avg, Sum, Q
+from django.db.models import Count, Avg, Sum
+from django.db.models.functions import TruncDate, ExtractWeekDay
 from django.utils import timezone
+from datetime import timezone as dt_timezone
 from apps.habits.models import Habit, HabitCompletion, HabitStreak
 
 
 def get_dashboard_metrics(user):
-    """
-    Aggregate the key metrics shown on the main dashboard.
-    Returns a dict ready to serialize.
-    """
-    now   = timezone.now()
-    today = now.date()
+    now       = timezone.now()
+    today     = now.date()
     week_ago  = today - timedelta(days=7)
-    month_ago = today - timedelta(days=30)
+    two_weeks_ago = today - timedelta(days=14)
 
-    # Active habits (not deleted, not archived)
     active_habits = Habit.objects.filter(
         user=user, deleted_at__isnull=True, is_archived=False
     )
     total_active = active_habits.count()
 
-    # Completions this week
     completions_this_week = HabitCompletion.objects.filter(
-        habit__user=user,
-        completed_at__date__gte=week_ago,
+        habit__user=user, completed_at__date__gte=week_ago,
     ).count()
 
-    # Completions last week (for delta)
-    two_weeks_ago = today - timedelta(days=14)
     completions_last_week = HabitCompletion.objects.filter(
         habit__user=user,
         completed_at__date__gte=two_weeks_ago,
         completed_at__date__lt=week_ago,
     ).count()
 
-    # 7-day completion rate
     possible_this_week = total_active * 7
     completion_rate_7d = (
         round((completions_this_week / possible_this_week) * 100, 1)
         if possible_this_week > 0 else 0
     )
 
-    # Total completions all time
-    total_completions = HabitCompletion.objects.filter(
-        habit__user=user
-    ).count()
+    total_completions = HabitCompletion.objects.filter(habit__user=user).count()
+    total_xp = (
+        HabitCompletion.objects
+        .filter(habit__user=user)
+        .aggregate(total=Sum("xp_earned"))["total"] or 0
+    )
 
-    # Total XP
-    total_xp = HabitCompletion.objects.filter(
-        habit__user=user
-    ).aggregate(total=Sum("xp_earned"))["total"] or 0
+    best_streak = (
+        HabitStreak.objects
+        .filter(habit__user=user)
+        .order_by("-current_streak")
+        .select_related("habit")
+        .first()
+    )
 
-    # Best current streak across all habits
-    best_streak = HabitStreak.objects.filter(
-        habit__user=user
-    ).order_by("-current_streak").first()
+    completed_today = (
+        HabitCompletion.objects
+        .filter(habit__user=user, completed_at__date=today)
+        .values("habit")
+        .distinct()
+        .count()
+    )
 
-    # Habits completed today
-    completed_today = HabitCompletion.objects.filter(
-        habit__user=user,
-        completed_at__date=today,
-    ).values("habit").distinct().count()
-
-    # Week delta
     week_delta = completions_this_week - completions_last_week
     week_delta_pct = (
         round((week_delta / completions_last_week) * 100, 1)
@@ -74,33 +63,29 @@ def get_dashboard_metrics(user):
     )
 
     return {
-        "active_habits":        total_active,
-        "completed_today":      completed_today,
-        "remaining_today":      max(0, total_active - completed_today),
+        "active_habits":         total_active,
+        "completed_today":       completed_today,
+        "remaining_today":       max(0, total_active - completed_today),
         "completions_this_week": completions_this_week,
-        "completion_rate_7d":   completion_rate_7d,
-        "week_delta_pct":       week_delta_pct,
-        "total_completions":    total_completions,
-        "total_xp":             total_xp,
+        "completion_rate_7d":    completion_rate_7d,
+        "week_delta_pct":        week_delta_pct,
+        "total_completions":     total_completions,
+        "total_xp":              total_xp,
         "best_streak": {
-            "current":  best_streak.current_streak if best_streak else 0,
-            "longest":  best_streak.longest_streak if best_streak else 0,
-            "habit":    best_streak.habit.title if best_streak else None,
+            "current": best_streak.current_streak,
+            "longest": best_streak.longest_streak,
+            "habit":   best_streak.habit.title,
         } if best_streak else None,
         "as_of": now.isoformat(),
     }
 
 
 def get_heatmap_data(user, year=None, habit_id=None):
-    """
-    Returns calendar heatmap data — completion counts per day.
-    Optionally filtered by year or specific habit.
-    """
     today = timezone.now().date()
     year  = year or today.year
 
-    start = timezone.datetime(year, 1, 1, tzinfo=timezone.utc)
-    end   = timezone.datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    start = timezone.datetime(year, 1,  1,  0, 0, 0, tzinfo=dt_timezone.utc)
+    end   = timezone.datetime(year, 12, 31, 23, 59, 59, tzinfo=dt_timezone.utc)
 
     qs = HabitCompletion.objects.filter(
         habit__user=user,
@@ -111,16 +96,18 @@ def get_heatmap_data(user, year=None, habit_id=None):
     if habit_id:
         qs = qs.filter(habit_id=habit_id)
 
-    # Group by date
     daily = (
-        qs.extra(select={"day": "DATE(completed_at)"})
-          .values("day")
-          .annotate(count=Count("id"))
-          .order_by("day")
+        qs
+        .annotate(day=TruncDate("completed_at"))
+        .values("day")
+        .annotate(count=Count("id"))
+        .order_by("day")
     )
 
-    # Build a dict {date_str: count}
-    heatmap = {str(row["day"]): row["count"] for row in daily}
+    heatmap = {}
+    for row in daily:
+        if row["day"] is not None:
+            heatmap[str(row["day"])] = row["count"]
 
     return {
         "year":    year,
@@ -130,48 +117,36 @@ def get_heatmap_data(user, year=None, habit_id=None):
 
 
 def get_habit_stats(user, habit_id):
-    """
-    Per-habit statistics — completion rate, best/current streak, avg value.
-    """
     try:
-        habit = Habit.objects.get(id=habit_id, user=user, deleted_at__isnull=True)
+        habit = Habit.objects.get(
+            id=habit_id, user=user, deleted_at__isnull=True
+        )
     except Habit.DoesNotExist:
         return None
 
     completions = HabitCompletion.objects.filter(habit=habit)
-    total = completions.count()
-
-    # 30-day completion rate
-    month_ago = timezone.now().date() - timedelta(days=30)
-    last_30 = completions.filter(completed_at__date__gte=month_ago).count()
-    rate_30d = round((last_30 / 30) * 100, 1)
-
-    # Average value for MEASURABLE habits
-    avg_value = completions.aggregate(avg=Avg("value"))["avg"]
-
-    streak = getattr(habit, "streak", None)
+    total       = completions.count()
+    month_ago   = timezone.now().date() - timedelta(days=30)
+    last_30     = completions.filter(completed_at__date__gte=month_ago).count()
+    rate_30d    = round((last_30 / 30) * 100, 1)
+    avg_value   = completions.aggregate(avg=Avg("value"))["avg"]
+    streak      = getattr(habit, "streak", None)
 
     return {
-        "habit_id":     str(habit.id),
-        "title":        habit.title,
-        "total_completions": total,
+        "habit_id":             str(habit.id),
+        "title":                habit.title,
+        "total_completions":    total,
         "completions_last_30d": last_30,
-        "completion_rate_30d": rate_30d,
-        "avg_value":    round(float(avg_value), 2) if avg_value else None,
-        "target_value": float(habit.target_value) if habit.target_value else None,
-        "target_unit":  habit.target_unit,
-        "current_streak": streak.current_streak if streak else 0,
-        "longest_streak": streak.longest_streak if streak else 0,
+        "completion_rate_30d":  rate_30d,
+        "avg_value":            round(float(avg_value), 2) if avg_value else None,
+        "target_value":         float(habit.target_value) if habit.target_value else None,
+        "target_unit":          habit.target_unit,
+        "current_streak":       streak.current_streak if streak else 0,
+        "longest_streak":       streak.longest_streak if streak else 0,
     }
 
 
 def get_weekly_breakdown(user):
-    """
-    Completion count broken down by day of the week (Mon–Sun).
-    Used for the 'best day' insight.
-    """
-    from django.db.models.functions import ExtractWeekDay
-
     results = (
         HabitCompletion.objects
         .filter(habit__user=user)
@@ -181,17 +156,18 @@ def get_weekly_breakdown(user):
         .order_by("weekday")
     )
 
+    # Django: 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat
     day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     breakdown = {day: 0 for day in day_names}
 
     for row in results:
-        # Django ExtractWeekDay: 1=Sun, 2=Mon, ..., 7=Sat
-        day_name = day_names[row["weekday"] - 1]
-        breakdown[day_name] = row["count"]
+        idx = row["weekday"] - 1
+        if 0 <= idx < 7:
+            breakdown[day_names[idx]] = row["count"]
 
-    best_day = max(breakdown, key=breakdown.get) if breakdown else None
+    best_day = (
+        max(breakdown, key=breakdown.get)
+        if any(breakdown.values()) else None
+    )
 
-    return {
-        "breakdown": breakdown,
-        "best_day":  best_day,
-    }
+    return {"breakdown": breakdown, "best_day": best_day}
