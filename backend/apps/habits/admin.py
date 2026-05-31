@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Habit, HabitCategory, HabitCompletion, HabitStreak, HabitReminder
+
+from .models import Habit, HabitCategory, HabitCompletion, HabitReminder, HabitStreak
 
 
 @admin.register(HabitCategory)

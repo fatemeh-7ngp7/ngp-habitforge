@@ -80,7 +80,7 @@ coverage:
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 lint:
-	cd backend && poetry run ruff check apps/ core/ config/ --config ../pyproject.toml --config ../pyproject.toml --config ../pyproject.toml
+	cd backend && poetry run ruff check apps/ core/ config/ --config ../pyproject.toml
 
 format:
 	cd backend && poetry run black apps/ core/ config/ && \

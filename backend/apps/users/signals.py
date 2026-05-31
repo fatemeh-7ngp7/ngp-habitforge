@@ -2,8 +2,10 @@
 Signals for the users app.
 """
 import logging
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
 from .models import CustomUser, UserProfile
 
 logger = logging.getLogger(__name__)

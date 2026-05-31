@@ -4,20 +4,21 @@ All responses follow the standard envelope:
   { "success": true/false, "data": {...}, "meta": {...} }
 """
 import logging
+
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from .serializers import (
-    RegisterSerializer,
-    LoginSerializer,
-    UserSummarySerializer,
     ChangePasswordSerializer,
+    LoginSerializer,
+    RegisterSerializer,
+    UserSummarySerializer,
 )
 
 logger = logging.getLogger(__name__)

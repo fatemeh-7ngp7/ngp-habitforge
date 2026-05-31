@@ -3,13 +3,14 @@ Authentication URL patterns.
 Mounted at /api/v1/auth/ and /api/v2/auth/
 """
 from django.urls import path
+
 from .views import (
-    RegisterView,
+    ChangePasswordView,
     LoginView,
     LogoutView,
-    TokenRefreshView,
-    ChangePasswordView,
     MeView,
+    RegisterView,
+    TokenRefreshView,
 )
 
 urlpatterns = [

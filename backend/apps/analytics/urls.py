@@ -1,11 +1,12 @@
 from django.urls import path
+
 from .views import (
     DashboardView,
-    HeatmapView,
     HabitStatsView,
-    WeeklyBreakdownView,
+    HeatmapView,
     InsightsView,
     SeedInsightView,
+    WeeklyBreakdownView,
 )
 
 urlpatterns = [

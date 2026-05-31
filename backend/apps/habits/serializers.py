@@ -3,8 +3,9 @@ Habit serializers — full CRUD + completion + streak.
 """
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Habit, HabitCategory, HabitCompletion, HabitStreak, HabitReminder
+
 from .enums import HabitType
+from .models import Habit, HabitCategory, HabitCompletion, HabitReminder, HabitStreak
 
 
 class HabitCategorySerializer(serializers.ModelSerializer):

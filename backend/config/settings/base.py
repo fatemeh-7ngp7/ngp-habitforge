@@ -1,7 +1,9 @@
 """
 Base settings shared by all environments.
 """
+from datetime import timedelta
 from pathlib import Path
+
 import environ
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -159,7 +161,6 @@ REST_FRAMEWORK = {
 }
 
 # ── JWT ────────────────────────────────────────────────────────────────────────
-from datetime import timedelta
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),

@@ -3,6 +3,7 @@ Celery application for NGP HabitForge.
 Workers handle: habit reminders, streak calculations, email, analytics.
 """
 import os
+
 from celery import Celery
 from celery.schedules import crontab
 

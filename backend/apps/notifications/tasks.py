@@ -2,6 +2,7 @@
 Celery tasks for the notifications domain.
 """
 import logging
+
 from celery import shared_task
 from django.utils import timezone
 
@@ -15,7 +16,7 @@ def send_morning_reminders():
     Sends reminders for habits scheduled for today that aren't yet complete.
     Phase 2 will integrate FCM/APNs — for now we log.
     """
-    from apps.habits.models import HabitReminder, HabitCompletion
+    from apps.habits.models import HabitCompletion, HabitReminder
 
     today     = timezone.now().date()
     weekday   = today.weekday()  # 0=Mon … 6=Sun
@@ -64,6 +65,7 @@ def send_weekly_digest():
     Phase 2 will integrate SendGrid — for now we log.
     """
     from django.contrib.auth import get_user_model
+
     from apps.analytics.services import get_dashboard_metrics
 
     User = get_user_model()

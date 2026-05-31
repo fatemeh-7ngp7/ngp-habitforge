@@ -3,11 +3,13 @@ Authentication serializers.
 Handles registration, login, token refresh, and password validation.
 """
 import logging
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from apps.users.models import CustomUser
 
 logger = logging.getLogger(__name__)

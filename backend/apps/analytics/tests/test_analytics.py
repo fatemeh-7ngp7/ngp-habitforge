@@ -2,8 +2,9 @@
 Tests for analytics endpoints.
 """
 import pytest
-from apps.habits.models import Habit, HabitCompletion
+
 from apps.habits.enums import HabitType
+from apps.habits.models import Habit, HabitCompletion
 
 DASHBOARD_URL = "/api/v2/analytics/dashboard/"
 HEATMAP_URL   = "/api/v2/analytics/heatmap/"

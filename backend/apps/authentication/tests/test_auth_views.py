@@ -1,11 +1,11 @@
-from rest_framework.test import APIClient
 """
 Integration tests for the authentication API.
 """
 import pytest
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
-from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
 
 User = get_user_model()
 
@@ -29,7 +29,6 @@ class TestRegisterView:
             "password_confirm": "StrongPass99!",
         }
         response = api_client.post(REGISTER_URL, payload, format="json")
-
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["success"] is True
@@ -89,7 +88,6 @@ class TestLoginView:
             "email":    user.email,
             "password": "TestPass123!",
         }, format="json")
-
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["success"] is True
@@ -151,12 +149,10 @@ class TestMeView:
 class TestLogoutView:
 
     def test_logout_blacklists_token(self, auth_client, user):
-        # Get a refresh token
         login = APIClient().post(LOGIN_URL, {
             "email": user.email, "password": "TestPass123!",
         }, format="json")
         refresh = login.json()["data"]["tokens"]["refresh"]
-
         response = auth_client.post(LOGOUT_URL, {"refresh": refresh}, format="json")
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["success"] is True
@@ -164,5 +160,3 @@ class TestLogoutView:
     def test_logout_requires_auth(self, api_client):
         response = api_client.post(LOGOUT_URL, {"refresh": "token"}, format="json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-

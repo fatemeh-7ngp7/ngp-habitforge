@@ -2,6 +2,7 @@
 Celery tasks for analytics aggregation.
 """
 import logging
+
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ def aggregate_hourly_stats():
     For now — log a heartbeat to confirm Celery beat is running.
     """
     from django.utils import timezone
+
     from apps.habits.models import HabitCompletion
 
     hour_completions = HabitCompletion.objects.filter(

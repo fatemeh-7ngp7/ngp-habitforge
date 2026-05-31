@@ -2,19 +2,20 @@
 Analytics views — dashboard, heatmap, per-habit stats, insights.
 """
 import logging
+
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
 
-from .services import (
-    get_dashboard_metrics,
-    get_heatmap_data,
-    get_habit_stats,
-    get_weekly_breakdown,
-)
 from .models import UserInsight
 from .serializers import UserInsightSerializer
+from .services import (
+    get_dashboard_metrics,
+    get_habit_stats,
+    get_heatmap_data,
+    get_weekly_breakdown,
+)
 
 logger = logging.getLogger(__name__)
 

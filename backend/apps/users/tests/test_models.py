@@ -3,6 +3,7 @@ Tests for CustomUser and UserProfile models.
 """
 import pytest
 from django.contrib.auth import get_user_model
+
 from apps.users.models import UserProfile
 
 User = get_user_model()

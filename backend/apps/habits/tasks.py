@@ -3,6 +3,7 @@ Celery tasks for the habits domain.
 """
 import logging
 from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
 
@@ -49,8 +50,9 @@ def calculate_user_xp(self, user_id):
     Called after bulk imports or data corrections.
     """
     from django.contrib.auth import get_user_model
-    from apps.habits.models import HabitCompletion
     from django.db.models import Sum
+
+    from apps.habits.models import HabitCompletion
 
     User = get_user_model()
     try:

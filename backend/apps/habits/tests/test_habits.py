@@ -3,8 +3,9 @@ Tests for the Habits domain — models + API.
 """
 import pytest
 from django.utils import timezone
+
+from apps.habits.enums import DifficultyLevel, HabitType
 from apps.habits.models import Habit, HabitCompletion, HabitStreak
-from apps.habits.enums import HabitType, DifficultyLevel
 
 HABITS_URL  = "/api/v2/habits/"
 

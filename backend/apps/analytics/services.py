@@ -1,8 +1,10 @@
 from datetime import timedelta
-from django.db.models import Count, Avg, Sum
-from django.db.models.functions import TruncDate, ExtractWeekDay
-from django.utils import timezone
 from datetime import timezone as dt_timezone
+
+from django.db.models import Avg, Count, Sum
+from django.db.models.functions import ExtractWeekDay, TruncDate
+from django.utils import timezone
+
 from apps.habits.models import Habit, HabitCompletion, HabitStreak
 
 

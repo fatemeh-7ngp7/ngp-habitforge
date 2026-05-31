@@ -8,12 +8,14 @@ HabitCategory      — taxonomy (Fitness, Mind, Sleep, etc.)
 HabitReminder      — scheduled reminders per habit
 """
 import uuid
+
 from django.conf import settings
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from .enums import HabitType, FrequencyType, DifficultyLevel, VerificationMethod
+
+from .enums import DifficultyLevel, FrequencyType, HabitType, VerificationMethod
 
 
 class HabitCategory(models.Model):
