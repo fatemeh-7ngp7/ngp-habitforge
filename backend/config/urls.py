@@ -9,24 +9,19 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from .admin_config import configure_admin
+
+# Apply admin branding
+configure_admin()
 
 urlpatterns = [
-    # Admin
-    path("admin/", admin.site.urls),
-
-    # API v1
-    path("api/v1/", include("api.v1.urls")),
-
-    # API v2
-    path("api/v2/", include("api.v2.urls")),
-
-    # OpenAPI schema + docs
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
-
-    # Health checks
-    path("healthz/", include("core.urls")),
+    path("admin/",    admin.site.urls),
+    path("api/v1/",   include("api.v1.urls")),
+    path("api/v2/",   include("api.v2.urls")),
+    path("api/schema/", SpectacularAPIView.as_view(),   name="schema"),
+    path("api/docs/",   SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/redoc/",  SpectacularRedocView.as_view(url_name="schema"),   name="redoc"),
+    path("healthz/",  include("core.urls")),
 ]
 
 if settings.DEBUG:
