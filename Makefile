@@ -88,11 +88,7 @@ format:
 
 # ── Seed data ─────────────────────────────────────────────────────────────────
 seed:
-	cd backend && poetry run python manage.py shell -c "\
-from apps.habits.models import HabitCategory; \
-cats = [('Fitness','🏃','#E8400C',1),('Mind','🧘','#9B51E0',2),('Nutrition','🥗','#27AE60',3),('Sleep','😴','#2D9CDB',4),('Learning','📚','#F2994A',5),('Social','👥','#EB5757',6),('Finance','💰','#56CCF2',7),('Creativity','🎨','#F2C94C',8)]; \
-[HabitCategory.objects.get_or_create(name=n,defaults={'icon':i,'color':c,'order':o}) for n,i,c,o in cats]; \
-print('✅ Seeded', HabitCategory.objects.count(), 'categories')"
+	cd backend && poetry run python scripts/seed_data.py
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 clean:
