@@ -35,7 +35,12 @@ RUN groupadd --gid 1000 appuser && \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    libc6-dev \
     libpq5 \
+    libpq-dev \
+    gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

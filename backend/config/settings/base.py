@@ -29,7 +29,7 @@ else:
 
 # ── Core ───────────────────────────────────────────────────────────────────────
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = env("DEBUG")
+#DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 # ── Application definition ─────────────────────────────────────────────────────

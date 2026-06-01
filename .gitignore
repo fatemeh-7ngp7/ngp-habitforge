@@ -64,3 +64,14 @@ Thumbs.db
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+# Docker
+.env.prod
+docker-compose.override.yml
+
+# nginx SSL (never commit certs)
+nginx/ssl/
+
+# Build artifacts
+backend/staticfiles/
+backend/media/
