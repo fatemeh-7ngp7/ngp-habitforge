@@ -1,5 +1,5 @@
 # ─── Stage 1: Builder ─────────────────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+FROM docker.arvancloud.ir/python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    /root/.local/bin/poetry self add poetry-plugin-export
 ENV PATH="/root/.local/bin:$PATH"
 
 # Copy dependency files (now in build context = backend/)
@@ -26,7 +27,7 @@ RUN poetry export \
     -o requirements.txt
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM docker.arvancloud.ir/python:3.12-slim AS runtime
 
 RUN groupadd --gid 1000 appuser && \
     useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser

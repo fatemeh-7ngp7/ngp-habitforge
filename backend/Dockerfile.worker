@@ -1,0 +1,24 @@
+# Celery worker — same runtime as web but different CMD
+FROM docker.arvancloud.ir/python:3.12-slim AS runtime
+
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt . 2>/dev/null || true
+RUN pip install --no-cache-dir -r requirements.txt 2>/dev/null || true
+
+COPY --chown=appuser:appuser . .
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app
+
+USER appuser
+
+CMD ["celery", "-A", "config", "worker", \
+     "--loglevel=info", \
+     "--concurrency=4", \
+     "-Q", "default,habits,notifications,analytics,gamification"]
