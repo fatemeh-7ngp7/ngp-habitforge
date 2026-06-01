@@ -36,6 +36,12 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=8, minute=0, day_of_week=1),
     },
 
+    # Leaderboard refresh — every hour
+    "refresh-leaderboards-hourly": {
+        "task":     "apps.gamification.tasks.refresh_leaderboards",
+        "schedule": crontab(minute=30),
+    },
+
     # Analytics aggregation — every hour
     "aggregate-analytics-hourly": {
         "task":     "apps.analytics.tasks.aggregate_hourly_stats",
