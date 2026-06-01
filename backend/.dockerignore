@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Virtual environment — never copy into image
+.venv/
+venv/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Local secrets — never copy into image
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# These are copies for Docker build only — originals are at project root
+# Uncomment below if you want to exclude from Docker context after confirming build works
+# pyproject.toml
+# poetry.lock
