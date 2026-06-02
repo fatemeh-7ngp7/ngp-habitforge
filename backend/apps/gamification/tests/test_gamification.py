@@ -229,6 +229,7 @@ class TestBadgeAwardEngine:
         """Badge requires joining 1 challenge."""
         make_xp_levels()
         from datetime import date, timedelta
+
         from apps.social.models import ChallengeParticipant, GroupChallenge
 
         badge = make_badge(

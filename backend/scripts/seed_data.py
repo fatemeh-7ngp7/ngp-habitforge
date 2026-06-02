@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 django.setup()
 
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from apps.habits.models import Habit, HabitCompletion, HabitCategory
 from apps.gamification.models import Badge, XPLevel
@@ -135,7 +136,9 @@ for user in users:
                 if not habit.completions.filter(completed_at__date=day).exists():
                     HabitCompletion.objects.create(
                         habit=habit,
-                        completed_at=f"{day}T08:00:00Z",
+                        completed_at=timezone.make_aware(
+                            datetime.combine(day, datetime.min.time()).replace(hour=8)
+                        ),
                         value=tval,
                         xp_earned=habit.get_xp_value(),
                     )

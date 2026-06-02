@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Badge, LeaderboardEntry, Leaderboard, UserBadge, UserXP, XPLevel
+from .models import Badge, Leaderboard, LeaderboardEntry, UserBadge, UserXP, XPLevel
 
 
 @admin.register(Badge)

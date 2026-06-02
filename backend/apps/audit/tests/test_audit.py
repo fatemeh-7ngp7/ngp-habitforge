@@ -2,6 +2,7 @@
 Tests for the Audit log.
 """
 import pytest
+
 from apps.audit.models import AuditLog
 
 

@@ -106,7 +106,9 @@ class BadgeAwardEngine:
         n is unused (condition is boolean) — kept for interface consistency.
         """
         from datetime import timedelta
+
         from django.utils import timezone
+
         from apps.habits.models import Habit, HabitCompletion
 
         today     = timezone.now().date()

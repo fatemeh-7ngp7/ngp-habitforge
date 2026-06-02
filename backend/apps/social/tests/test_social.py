@@ -1,9 +1,10 @@
 """
 Tests for the Social domain — friends, challenges, feed.
 """
+from datetime import date, timedelta
+
 import pytest
 from django.utils import timezone
-from datetime import date, timedelta
 
 from apps.social.models import ChallengeParticipant, Friendship, GroupChallenge, SocialFeedItem
 
