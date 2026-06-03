@@ -12,7 +12,7 @@ import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
 import { Label }    from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { authApi }  from '@/lib/auth'
 import { getErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
@@ -25,7 +25,6 @@ type LoginForm = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const router   = useRouter()
-  const { toast } = useToast()
   const setUser  = useAuthStore((s) => s.setUser)
   const [loading, setLoading] = useState(false)
 
@@ -38,14 +37,10 @@ export default function LoginPage() {
     try {
       const { user } = await authApi.login(values)
       setUser(user)
-      toast({ title: `Welcome back, ${user.first_name || user.username}! 🔥` })
+      toast.success(`Welcome back, ${user.first_name || user.username}! 🔥`)
       router.push('/habits')
     } catch (err) {
-      toast({
-        title:       'Login failed',
-        description: getErrorMessage(err),
-        variant:     'destructive',
-      })
+      toast.error(getErrorMessage(err))
     } finally {
       setLoading(false)
     }

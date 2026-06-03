@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 import { Label }  from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { authApi } from '@/lib/auth'
 import { getErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
@@ -35,7 +35,6 @@ type RegisterForm = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
   const router    = useRouter()
-  const { toast } = useToast()
   const setUser   = useAuthStore((s) => s.setUser)
   const [loading, setLoading] = useState(false)
 
@@ -48,14 +47,10 @@ export default function RegisterPage() {
     try {
       const { user } = await authApi.register(values)
       setUser(user)
-      toast({ title: `Welcome to HabitForge, ${user.username}! 🎉` })
+      toast.success(`Welcome to HabitForge, ${user.username}! 🎉`)
       router.push('/habits')
     } catch (err) {
-      toast({
-        title:       'Registration failed',
-        description: getErrorMessage(err),
-        variant:     'destructive',
-      })
+      toast.error(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
