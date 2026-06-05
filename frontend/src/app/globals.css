@@ -1,34 +1,51 @@
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background:        0 0% 5%;
-    --foreground:        40 15% 91%;
-    --card:              30 8% 8%;
-    --card-foreground:   40 15% 91%;
-    --popover:           30 8% 8%;
-    --popover-foreground:40 15% 91%;
-    --primary:           16 90% 48%;
-    --primary-foreground:0 0% 100%;
-    --secondary:         30 6% 13%;
-    --secondary-foreground:40 15% 91%;
-    --muted:             30 6% 15%;
-    --muted-foreground:  30 5% 55%;
-    --accent:            30 6% 15%;
-    --accent-foreground: 40 15% 91%;
-    --destructive:       0 72% 51%;
-    --destructive-foreground:0 0% 100%;
-    --border:            30 6% 15%;
-    --input:             30 6% 15%;
-    --ring:              16 90% 48%;
-    --radius:            0.75rem;
-  }
+@theme {
+  /* ── NGP Brand ─────────────────────────────────── */
+  --color-forge:        #E8400C;
+  --color-forge-light:  #FF5A2C;
+  --color-forge-dark:   #C43309;
+
+  /* ── Dark surface palette ──────────────────────── */
+  --color-ngp-dark:     #0E0D0B;
+  --color-card-dark:    #181714;
+  --color-ngp-text:     #E8E6E0;
+  --color-ngp-muted:    #888680;
+  --color-border-dark:  #2A2925;
+  --color-border-dark2: #3A3830;
+
+  /* ── shadcn/ui CSS variable bridge ─────────────── */
+  --color-background:         #0E0D0B;
+  --color-foreground:         #E8E6E0;
+  --color-card:               #181714;
+  --color-card-foreground:    #E8E6E0;
+  --color-popover:            #181714;
+  --color-popover-foreground: #E8E6E0;
+  --color-primary:            #E8400C;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary:          #2A2925;
+  --color-secondary-foreground: #E8E6E0;
+  --color-muted:              #2A2925;
+  --color-muted-foreground:   #888680;
+  --color-accent:             #2A2925;
+  --color-accent-foreground:  #E8E6E0;
+  --color-destructive:        #EB5757;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border:             #2A2925;
+  --color-input:              #2A2925;
+  --color-ring:               #E8400C;
+
+  --radius: 0.75rem;
 }
 
 @layer base {
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
-} */
-@import "tailwindcss";
+  * {
+    border-color: var(--color-border);
+    outline-color: var(--color-ring);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+}

@@ -1,30 +1,23 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { habitsApi, CreateHabitPayload } from '@/lib/habits'
-import { Habit } from '@/types'
+import { useMemo, useState } from 'react'
+import { Habit, HabitType, CreateHabitPayload } from '@/types'
+import { useHabits, useCompleteHabit, useDeleteHabit } from '@/hooks/use-habits'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Dialog, DialogContent, DialogHeader,
+  DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/api'
-import {
-  Plus, Flame, CheckCircle2, Circle,
-  Trash2, Zap, X,
-} from 'lucide-react'
+import { Plus, Flame, CheckCircle2, Circle, Trash2, Zap, X, Search } from 'lucide-react'
 
-const DIFFICULTY_COLOR: Record<string, string> = {
-  EASY:   'text-green-400',
-  MEDIUM: 'text-yellow-400',
-  HARD:   'text-orange-400',
-}
-
-const DIFFICULTY_XP: Record<string, number> = {
-  EASY: 10, MEDIUM: 25, HARD: 50,
-}
+// ─── HabitCard ────────────────────────────────────────────────────────────────
 
 function HabitCard({
   habit,
@@ -40,16 +33,21 @@ function HabitCard({
   const handleComplete = async () => {
     if (habit.completed_today || completing) return
     setCompleting(true)
-    await onComplete(habit.id)
-    setCompleting(false)
+    try {
+      onComplete(habit.id)
+    } finally {
+      setCompleting(false)
+    }
   }
 
+  const displayName = habit.title || habit.name || ''
+
   return (
-    <Card className={`transition-all duration-200 ${habit.completed_today ? 'opacity-60' : 'hover:border-primary/40'}`}>
+    <Card className={`transition-all duration-200 ${
+      habit.completed_today ? 'opacity-60' : 'hover:border-primary/40'
+    }`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-
-          {/* Complete button */}
           <button
             onClick={handleComplete}
             disabled={habit.completed_today || completing}
@@ -61,39 +59,40 @@ function HabitCard({
             }
           </button>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               {habit.icon && <span className="text-base">{habit.icon}</span>}
-              <span className={`font-semibold text-sm ${habit.completed_today ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                {habit.title}
+              <span className={`font-semibold text-sm ${
+                habit.completed_today
+                  ? 'line-through text-muted-foreground'
+                  : 'text-foreground'
+              }`}>
+                {displayName}
               </span>
-              <Badge variant="outline" className={`text-[10px] px-1.5 ${DIFFICULTY_COLOR[habit.difficulty]}`}>
-                {habit.difficulty}
+              <Badge variant="outline" className="text-[10px] px-1.5">
+                {habit.habit_type}
               </Badge>
             </div>
 
-            {/* Streak + XP */}
             <div className="flex items-center gap-3 mt-1.5">
-              {habit.streak.current_streak > 0 && (
+              {(habit.streak?.current_streak ?? 0) > 0 && (
                 <span className="flex items-center gap-1 text-xs text-orange-400">
                   <Flame className="w-3 h-3" />
-                  {habit.streak.current_streak}d streak
+                  {habit.streak!.current_streak}d streak
                 </span>
               )}
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Zap className="w-3 h-3" />
-                {DIFFICULTY_XP[habit.difficulty]} XP
+                {habit.xp_reward} XP
               </span>
               {habit.target_value && (
                 <span className="text-xs text-muted-foreground">
-                  Target: {habit.target_value} {habit.target_unit}
+                  Target: {habit.target_value} {habit.target_unit ?? habit.unit ?? ''}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Delete */}
           <button
             onClick={() => onDelete(habit.id)}
             className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
@@ -106,13 +105,21 @@ function HabitCard({
   )
 }
 
-function CreateHabitForm({ onCreated, onClose }: { onCreated: () => void; onClose: () => void }) {
+// ─── CreateHabitForm ──────────────────────────────────────────────────────────
+
+function CreateHabitForm({
+  onCreated,
+  onClose,
+}: {
+  onCreated: () => void
+  onClose: () => void
+}) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<CreateHabitPayload>({
-    title:          '',
-    habit_type:     'BINARY',
-    frequency_type: 'DAILY',
-    difficulty:     'MEDIUM',
+    title: '',
+    description: '',
+    habit_type: 'BINARY',
+    frequency: 'daily',
   })
 
   const set = (k: keyof CreateHabitPayload, v: string) =>
@@ -123,6 +130,7 @@ function CreateHabitForm({ onCreated, onClose }: { onCreated: () => void; onClos
     if (!form.title.trim()) return
     setLoading(true)
     try {
+      const { habitsApi } = await import('@/lib/habits')
       await habitsApi.create(form)
       toast.success(`Habit "${form.title}" created! 🎯`)
       onCreated()
@@ -139,10 +147,14 @@ function CreateHabitForm({ onCreated, onClose }: { onCreated: () => void; onClos
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-foreground">New Habit</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <Label htmlFor="title" className="text-xs">Title</Label>
@@ -153,9 +165,24 @@ function CreateHabitForm({ onCreated, onClose }: { onCreated: () => void; onClos
               onChange={(e) => set('title', e.target.value)}
               className="mt-1"
               autoFocus
+              required
             />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+
+          <div>
+            <Label htmlFor="description" className="text-xs">
+              Description (optional)
+            </Label>
+            <Input
+              id="description"
+              placeholder="Why this habit matters..."
+              value={form.description ?? ''}
+              onChange={(e) => set('description', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Type</Label>
               <select
@@ -172,53 +199,56 @@ function CreateHabitForm({ onCreated, onClose }: { onCreated: () => void; onClos
               <Label className="text-xs">Frequency</Label>
               <select
                 className="w-full mt-1 bg-background border border-input rounded-md px-2 py-1.5 text-sm text-foreground"
-                value={form.frequency_type}
-                onChange={(e) => set('frequency_type', e.target.value)}
+                value={form.frequency}
+                onChange={(e) => set('frequency', e.target.value)}
               >
-                <option value="DAILY">Daily</option>
-                <option value="WEEKLY">Weekly</option>
-              </select>
-            </div>
-            <div>
-              <Label className="text-xs">Difficulty</Label>
-              <select
-                className="w-full mt-1 bg-background border border-input rounded-md px-2 py-1.5 text-sm text-foreground"
-                value={form.difficulty}
-                onChange={(e) => set('difficulty', e.target.value)}
-              >
-                <option value="EASY">Easy (10 XP)</option>
-                <option value="MEDIUM">Medium (25 XP)</option>
-                <option value="HARD">Hard (50 XP)</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="custom">Custom</option>
               </select>
             </div>
           </div>
-          {form.habit_type === 'MEASURABLE' && (
+
+          {/* Show target fields only for non-binary types */}
+          {form.habit_type !== 'BINARY' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Target value</Label>
+                <Label htmlFor="target_value" className="text-xs">
+                  Target value
+                </Label>
                 <Input
-                  placeholder="e.g. 5"
-                  value={form.target_value ?? ''}
-                  onChange={(e) => set('target_value', e.target.value)}
+                  id="target_value"
+                  type="number"
+                  min={1}
+                  placeholder={form.habit_type === 'TIME_BASED' ? '30' : '5'}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      target_value: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label className="text-xs">Unit</Label>
+                <Label htmlFor="target_unit" className="text-xs">Unit</Label>
                 <Input
-                  placeholder="e.g. km"
-                  value={form.target_unit ?? ''}
+                  id="target_unit"
+                  placeholder={form.habit_type === 'TIME_BASED' ? 'min' : 'km'}
                   onChange={(e) => set('target_unit', e.target.value)}
                   className="mt-1"
                 />
               </div>
             </div>
           )}
-          <div className="flex gap-2 pt-1">
-            <Button type="submit" size="sm" disabled={loading || !form.title.trim()}>
-              {loading ? 'Creating...' : 'Create habit'}
+
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? 'Creating...' : 'Create Habit'}
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
           </div>
@@ -228,78 +258,116 @@ function CreateHabitForm({ onCreated, onClose }: { onCreated: () => void; onClos
   )
 }
 
+// ─── CreateHabitDialog ────────────────────────────────────────────────────────
+
+function CreateHabitDialog({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="default" size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          New Habit
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Habit</DialogTitle>
+        </DialogHeader>
+        <CreateHabitForm
+          onCreated={() => { onCreated(); setOpen(false) }}
+          onClose={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+type FilterType = "all" | HabitType
+type SortKey = "title" | "streak" | "created" | "xp"
+
 export default function HabitsPage() {
-  const [habits, setHabits]       = useState<Habit[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [showForm, setShowForm]   = useState(false)
+  const { data: habits = [], isLoading, refetch } = useHabits()
+  const completeHabit = useCompleteHabit()
+  const deleteHabit   = useDeleteHabit()
 
-  const load = useCallback(async () => {
-    try {
-      const data = await habitsApi.list()
-      setHabits(data)
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [search,     setSearch]     = useState("")
+  const [filterType, setFilterType] = useState<FilterType>("all")
+  const [sortKey,    setSortKey]    = useState<SortKey>("streak")
 
-  useEffect(() => { load() }, [load])
+  const totalStreak    = habits.reduce((acc, h) => acc + (h.streak?.current_streak ?? 0), 0)
+  const completedToday = habits.filter((h) => h.completed_today).length
+  const completePct    = habits.length > 0
+    ? Math.round((completedToday / habits.length) * 100) : 0
 
-  const handleComplete = async (id: string) => {
-    try {
-      const result = await habitsApi.complete(id)
-      toast.success(`🔥 ${result.streak.current_streak}-day streak! +${result.xp_earned} XP`)
-      await load()
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    try {
-      await habitsApi.delete(id)
-      toast.success('Habit deleted')
-      setHabits((h) => h.filter((x) => x.id !== id))
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-    }
-  }
-
+  const remaining = habits.filter((h) => !h.completed_today)
   const completed  = habits.filter((h) => h.completed_today)
-  const remaining  = habits.filter((h) => !h.completed_today)
-  const completePct = habits.length > 0
-    ? Math.round((completed.length / habits.length) * 100)
-    : 0
+
+  const filtered = useMemo(() => {
+    let result = habits.filter((h) => {
+      const name = (h.title || h.name || '').toLowerCase()
+      const matchSearch = name.includes(search.toLowerCase())
+      const matchType   = filterType === "all" || h.habit_type === filterType
+      return matchSearch && matchType
+    })
+
+    result.sort((a, b) => {
+      switch (sortKey) {
+        case "title":
+          return (a.title || a.name || '').localeCompare(b.title || b.name || '')
+        case "streak":
+          return (b.streak?.current_streak ?? 0) - (a.streak?.current_streak ?? 0)
+        case "xp":
+          return b.xp_reward - a.xp_reward
+        case "created":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        default:
+          return 0
+      }
+    })
+
+    return result
+  }, [habits, search, filterType, sortKey])
+
+  const handleComplete = (id: string) => {
+    completeHabit.mutate({ id, payload: {} })
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm("Delete this habit?")) {
+      deleteHabit.mutate(id)
+    }
+  }
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-foreground">Habits</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {loading ? 'Loading...' : `${habits.length} habit${habits.length !== 1 ? 's' : ''} · ${completed.length} done today`}
+          <h1 className="text-2xl font-extrabold tracking-tight">My Habits</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {habits.length} habit{habits.length !== 1 ? "s" : ""} ·{" "}
+            <span className="text-green-400">{completedToday} done today</span>{" "}
+            · <span className="text-orange-400">{totalStreak} total streak days</span>
           </p>
         </div>
-        <Button onClick={() => setShowForm((v) => !v)} size="sm" className="gap-1.5">
-          <Plus className="w-4 h-4" />
-          New habit
-        </Button>
+        <CreateHabitDialog onCreated={() => refetch()} />
       </div>
 
-      {/* Daily progress bar */}
-      {!loading && habits.length > 0 && (
+      {/* Progress bar */}
+      {habits.length > 0 && (
         <Card>
           <CardContent className="p-4">
             <div className="flex justify-between text-xs text-muted-foreground mb-2">
               <span>Today's progress</span>
-              <span>{completed.length}/{habits.length} completed</span>
+              <span>{completedToday}/{habits.length} completed</span>
             </div>
-            <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all duration-500"
+                className="bg-green-500 h-full transition-all duration-300"
                 style={{ width: `${completePct}%` }}
               />
             </div>
@@ -312,30 +380,58 @@ export default function HabitsPage() {
         </Card>
       )}
 
-      {/* Create form */}
-      {showForm && (
-        <CreateHabitForm
-          onCreated={load}
-          onClose={() => setShowForm(false)}
-        />
-      )}
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search habits…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9"
+          />
+        </div>
+        <select
+          className="px-3 py-1.5 border border-input rounded-md bg-background text-sm text-foreground"
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value as FilterType)}
+        >
+          <option value="all">All Types</option>
+          <option value="BINARY">Binary</option>
+          <option value="MEASURABLE">Measurable</option>
+          <option value="TIME_BASED">Time-based</option>
+        </select>
+        <select
+          className="px-3 py-1.5 border border-input rounded-md bg-background text-sm text-foreground"
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as SortKey)}
+        >
+          <option value="streak">Sort by Streak</option>
+          <option value="title">Sort by Name</option>
+          <option value="xp">Sort by XP</option>
+          <option value="created">Sort by Created</option>
+        </select>
+      </div>
 
-      {/* Habit list */}
-      {loading ? (
+      {/* List */}
+      {isLoading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <Card key={i}><CardContent className="p-4"><Skeleton className="h-12 w-full" /></CardContent></Card>
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : habits.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <Zap className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <Flame className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-semibold text-foreground mb-1">No habits yet</h3>
-            <p className="text-muted-foreground text-sm mb-4">Create your first habit to start building streaks.</p>
-            <Button onClick={() => setShowForm(true)} size="sm">
-              <Plus className="w-4 h-4 mr-1.5" /> Create habit
-            </Button>
+            <p className="text-muted-foreground text-sm mb-4">
+              Create your first habit to start building streaks.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -345,9 +441,16 @@ export default function HabitsPage() {
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Remaining ({remaining.length})
               </h2>
-              {remaining.map((h) => (
-                <HabitCard key={h.id} habit={h} onComplete={handleComplete} onDelete={handleDelete} />
-              ))}
+              <div className="space-y-2">
+                {remaining.map((h) => (
+                  <HabitCard
+                    key={h.id}
+                    habit={h}
+                    onComplete={handleComplete}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             </div>
           )}
           {completed.length > 0 && (
@@ -355,9 +458,16 @@ export default function HabitsPage() {
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Completed ({completed.length})
               </h2>
-              {completed.map((h) => (
-                <HabitCard key={h.id} habit={h} onComplete={handleComplete} onDelete={handleDelete} />
-              ))}
+              <div className="space-y-2">
+                {completed.map((h) => (
+                  <HabitCard
+                    key={h.id}
+                    habit={h}
+                    onComplete={handleComplete}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>

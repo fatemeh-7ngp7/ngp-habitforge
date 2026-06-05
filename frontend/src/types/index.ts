@@ -1,143 +1,250 @@
-// ─── API Response envelope ────────────────────────────────────────────────────
+// types/index.ts
+// Field names match Django API exactly.
+
+// ─── API Envelope ──────────────────────────────────────────────────────────────
+
 export interface ApiResponse<T> {
-  success: boolean
-  data: T
-  meta?: Record<string, unknown>
+  success: boolean;
+  data: T;
+  meta?: { message?: string };
   pagination?: {
-    count: number
-    next: string | null
-    previous: string | null
-  }
+    count: number;
+    next: string | null;
+    previous: string | null;
+  };
 }
 
 export interface ApiError {
-  success: false
-  error: {
-    detail: string | Record<string, string[]>
-    status_code?: number
-  }
+  success: false;
+  error: { detail: string };
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-export interface User {
-  id: string
-  email: string
-  username: string
-  first_name: string
-  last_name: string
-  full_name: string
-  is_verified: boolean
-  mfa_enabled: boolean
-  date_joined: string
-}
+// ─── Auth ──────────────────────────────────────────────────────────────────────
 
 export interface TokenPair {
-  access: string
-  refresh: string
-  token_type: string
-}
-
-export interface AuthResponse {
-  user: User
-  tokens: TokenPair
-  mfa_required?: boolean
+  access: string;
+  refresh: string;
 }
 
 export interface RegisterPayload {
-  email: string
-  username: string
-  first_name?: string
-  last_name?: string
-  password: string
-  password_confirm: string
+  email: string;
+  username: string;
+  password: string;
+  password_confirm: string;
 }
 
 export interface LoginPayload {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
-// ─── Habits ───────────────────────────────────────────────────────────────────
-export type HabitType = 'BINARY' | 'MEASURABLE' | 'TIME_BASED'
-export type FrequencyType = 'DAILY' | 'WEEKLY' | 'CUSTOM'
-export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD'
+export interface AuthResponse {
+  user: User;
+  tokens: TokenPair;
+}
+
+// ─── User ──────────────────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  avatar: string | null;
+  bio: string;
+  timezone: string;
+  locale: string;
+  onboarding_complete: boolean;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  is_verified: boolean;
+  mfa_enabled: boolean;
+  profile: UserProfile;
+  date_joined: string;
+}
+
+// ─── Habits ────────────────────────────────────────────────────────────────────
+
+// MUST be uppercase — matches Django TextChoices exactly
+export type HabitType = "BINARY" | "MEASURABLE" | "TIME_BASED";
+export type HabitFrequency = "daily" | "weekly" | "custom";
+
+export interface HabitCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
 
 export interface HabitStreak {
-  current_streak: number
-  longest_streak: number
-  last_completion_date: string | null
-  streak_start_date: string | null
-  total_completions: number
-  updated_at: string
+  id: string;
+  habit: string;
+  current_streak: number;
+  longest_streak: number;
+  last_completed: string | null;
+}
+
+export interface HabitReminder {
+  id: string;
+  habit: string;
+  time: string;
+  days_of_week: number[];
+  is_active: boolean;
 }
 
 export interface Habit {
-  id: string
-  title: string
-  description: string
-  icon: string
-  color: string
-  habit_type: HabitType
-  target_value: string | null
-  target_unit: string
-  frequency_type: FrequencyType
-  difficulty: DifficultyLevel
-  is_public: boolean
-  is_archived: boolean
-  order: number
-  streak: HabitStreak
-  category_name: string | null
-  completed_today: boolean
-  xp_per_completion: number
-  created_at: string
-  updated_at: string
+  id: string;
+  title: string;          // backend field name
+  name?: string;          // some serializers expose this too
+  description: string;
+  habit_type: HabitType;
+  frequency: HabitFrequency;
+  target_value: number | null;
+  target_unit: string | null;  // backend field name
+  unit?: string | null;        // alias kept for safety
+  xp_reward: number;
+  color: string;
+  icon: string;
+  category: HabitCategory | null;
+  is_active: boolean;
+  created_at: string;
+  deleted_at: string | null;
+  streak?: HabitStreak;
+  completed_today?: boolean;
 }
 
-// ─── Analytics ────────────────────────────────────────────────────────────────
+export interface HabitCompletion {
+  id: string;
+  habit: string;
+  completed_at: string;
+  value: number | null;
+  notes: string;
+  xp_earned: number;
+}
+
+// These field names MUST match the Django CreateHabitSerializer exactly
+export interface CreateHabitPayload {
+  title: string;           // NOT "name"
+  description?: string;
+  habit_type: HabitType;   // "BINARY" | "MEASURABLE" | "TIME_BASED"
+  frequency: HabitFrequency;
+  target_value?: number;
+  target_unit?: string;    // NOT "unit"
+  xp_reward?: number;
+  color?: string;
+  icon?: string;
+  category?: string;
+}
+
+export interface CompleteHabitPayload {
+  value?: number;
+  notes?: string;
+}
+
+// ─── Analytics ─────────────────────────────────────────────────────────────────
+
 export interface DashboardMetrics {
-  active_habits: number
-  completed_today: number
-  remaining_today: number
-  completions_this_week: number
-  completion_rate_7d: number
-  week_delta_pct: number
-  total_completions: number
-  total_xp: number
-  best_streak: {
-    current: number
-    longest: number
-    habit: string
-  } | null
-  as_of: string
+  total_habits: number;
+  active_streaks: number;
+  longest_streak: number;
+  total_completions: number;
+  completions_this_week: number;
+  total_xp: number;
+  current_level: string;
 }
 
-// ─── Gamification ─────────────────────────────────────────────────────────────
-export interface XPLevel {
-  level: number
-  xp_required: number
-  title: string
-  icon: string
-  color: string
+export interface HeatmapEntry {
+  date: string;
+  count: number;
 }
 
-export interface UserXP {
-  total_xp: number
-  current_level: XPLevel | null
-  xp_to_next_level: number
-  level_progress_pct: number
-  badges_earned: number
-  updated_at: string
+export interface WeeklyBreakdown {
+  habit_id: string;
+  habit_name: string;
+  completions: number[];
 }
+
+export interface Insight {
+  id: string;
+  title: string;
+  body: string;
+  insight_type: "streak" | "completion" | "suggestion" | "warning";
+}
+
+// ─── Gamification ──────────────────────────────────────────────────────────────
 
 export interface Badge {
-  id: string
-  name: string
-  description: string
-  icon: string
-  color: string
-  condition_type: string
-  condition_value: number
-  xp_reward: number
-  earned: boolean
-  earned_at: string | null
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  condition_type: "streak_days" | "total_completions" | "habits_created" | "challenge_won";
+  condition_value: number;
+  xp_reward: number;
+  earned: boolean;
+  earned_at?: string;
+}
+
+export interface XPStatus {
+  total_xp: number;
+  current_level: number;
+  level_title: string;
+  xp_for_next_level: number;
+  xp_progress: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: string;
+  username: string;
+  avatar: string | null;
+  score: number;
+  level_title: string;
+}
+
+// ─── Social ────────────────────────────────────────────────────────────────────
+
+export type FriendshipStatus = "pending" | "accepted" | "declined";
+export type FeedEventType =
+  | "habit_completed"
+  | "streak_reached"
+  | "challenge_joined"
+  | "challenge_won"
+  | "badge_earned";
+
+export interface Friend {
+  id: string;
+  username: string;
+  avatar: string | null;
+  total_xp: number;
+  level_title: string;
+}
+
+export interface FriendRequest {
+  id: string;
+  from_user: Friend;
+  created_at: string;
+  status: FriendshipStatus;
+}
+
+export interface GroupChallenge {
+  id: string;
+  name: string;
+  description: string;
+  creator: Friend;
+  start_date: string;
+  end_date: string;
+  max_participants: number;
+  participant_count: number;
+  is_joined: boolean;
+  habit_type?: HabitType;
+}
+
+export interface FeedItem {
+  id: string;
+  user: Friend;
+  event_type: FeedEventType;
+  payload: Record<string, unknown>;
+  is_public: boolean;
+  created_at: string;
 }
