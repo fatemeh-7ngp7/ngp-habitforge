@@ -83,7 +83,7 @@ function HabitCard({
               )}
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Zap className="w-3 h-3" />
-                {habit.xp_reward ?? 0} XP
+                {habit.difficulty === 'EASY' ? 10 : habit.difficulty === 'HARD' ? 50 : 25} XP
               </span>
               {habit.target_value && (
                 <span className="text-xs text-muted-foreground">
@@ -120,6 +120,7 @@ function CreateHabitForm({
     description: '',
     habit_type: 'BINARY',
     frequency: 'daily',
+    difficulty: 'MEDIUM',
   })
 
   const set = (k: keyof CreateHabitPayload, v: string) =>
@@ -244,6 +245,18 @@ function CreateHabitForm({
             </div>
           )}
 
+          <div>
+            <Label className="text-xs">Difficulty</Label>
+            <select
+              className="w-full mt-1 bg-background border border-input rounded-md px-2 py-1.5 text-sm text-foreground"
+              value={form.difficulty ?? 'MEDIUM'}
+              onChange={(e) => set('difficulty', e.target.value)}
+            >
+              <option value="EASY">Easy — 10 XP</option>
+              <option value="MEDIUM">Medium — 25 XP</option>
+              <option value="HARD">Hard — 50 XP</option>
+            </select>
+          </div>
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={loading} className="flex-1">
               {loading ? 'Creating...' : 'Create Habit'}
@@ -303,9 +316,7 @@ export default function HabitsPage() {
   const completePct    = habits.length > 0
     ? Math.round((completedToday / habits.length) * 100) : 0
 
-  const remaining = habits.filter((h) => !h.completed_today)
-  const completed  = habits.filter((h) => h.completed_today)
-
+  // filtered MUST be defined before remaining/completed
   const filtered = useMemo(() => {
     let result = habits.filter((h) => {
       const name = (h.title || h.name || '').toLowerCase()
@@ -331,6 +342,10 @@ export default function HabitsPage() {
 
     return result
   }, [habits, search, filterType, sortKey])
+
+  // derived from filtered — search/filter/sort all work correctly
+  const remaining = filtered.filter((h) => !h.completed_today)
+  const completed  = filtered.filter((h) => h.completed_today)
 
   const handleComplete = (id: string) => {
     completeHabit.mutate({ id, payload: {} })
