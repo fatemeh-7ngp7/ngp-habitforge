@@ -360,7 +360,7 @@ export default function AnalyticsPage() {
         />
         <MetricCard
           label="Total XP"
-          value={(metrics?.total_xp ?? 0).toLocaleString()}
+          value={(xp?.total_xp ?? metrics?.total_xp ?? 0).toLocaleString()}
           sub={xp?.current_level?.title ?? '—'}
           icon={Star}
           color="text-yellow-400"

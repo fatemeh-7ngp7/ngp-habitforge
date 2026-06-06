@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { analyticsApi, gamificationApi } from '@/lib/analytics'
+import { useDashboard, useXP } from '@/hooks/use-habits'
 import { useAuthStore } from '@/store/auth.store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,15 +8,27 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Zap, Flame, Trophy, Star, TrendingUp, CheckCircle2 } from 'lucide-react'
 
+// ─── MetricCard ───────────────────────────────────────────────────────────────
+
 function MetricCard({
-  label, value, sub, icon: Icon, color = 'text-primary',
+  label, value, sub, icon: Icon, color = 'text-primary', loading,
 }: {
   label: string
   value: string | number
   sub?: string
   icon: React.ElementType
   color?: string
+  loading?: boolean
 }) {
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <Skeleton className="h-16 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
   return (
     <Card>
       <CardContent className="p-5">
@@ -38,29 +49,14 @@ function MetricCard({
   )
 }
 
-export default function DashboardPage() {
-  const user                          = useAuthStore((s) => s.user)
-  const [metrics, setMetrics]         = useState<any>(null)
-  const [userXp, setUserXp]           = useState<any>(null)
-  const [loading, setLoading]         = useState(true)
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [m, xp] = await Promise.all([
-          analyticsApi.dashboard(),
-          gamificationApi.xp(),
-        ])
-        setMetrics(m)
-        setUserXp(xp)
-      } catch {
-        // silently fail — metrics are non-critical
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+export default function DashboardPage() {
+  const user                              = useAuthStore((s) => s.user)
+  const { data: metrics, isLoading: ml } = useDashboard()
+  const { data: userXp,  isLoading: xl } = useXP()
+
+  const loading = ml || xl
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -68,6 +64,20 @@ export default function DashboardPage() {
     if (h < 17) return 'Good afternoon'
     return 'Good evening'
   }
+
+  // Derive values — handle both backend shapes safely
+  const activeHabits     = metrics?.active_habits     ?? metrics?.total_habits     ?? 0
+  const bestStreakDays   = metrics?.best_streak?.current ?? metrics?.longest_streak  ?? 0
+  const bestStreakHabit  = metrics?.best_streak?.habit   ?? '—'
+  const completionRate   = metrics?.completion_rate_7d   ?? 0
+  const totalXp          = userXp?.total_xp              ?? metrics?.total_xp        ?? 0
+  const remainingToday   = metrics?.remaining_today      ?? 0
+  const completedToday   = metrics?.completed_today      ?? 0
+  const levelTitle       = userXp?.current_level?.title  ?? 'Beginner'
+  const levelIcon        = userXp?.current_level?.icon   ?? '🌱'
+  const levelColor       = userXp?.current_level?.color  ?? '#E8400C'
+  const progressPct      = userXp?.level_progress_pct    ?? 0
+  const xpToNext         = userXp?.xp_to_next_level      ?? 0
 
   return (
     <div className="space-y-8">
@@ -85,31 +95,54 @@ export default function DashboardPage() {
         {userXp?.current_level && (
           <Badge
             className="text-xs px-3 py-1"
-            style={{ background: userXp.current_level.color + '22', color: userXp.current_level.color, border: `1px solid ${userXp.current_level.color}44` }}
+            style={{
+              background: `${levelColor}22`,
+              color: levelColor,
+              border: `1px solid ${levelColor}44`,
+            }}
           >
-            {userXp.current_level.icon} {userXp.current_level.title}
+            {levelIcon} {levelTitle}
           </Badge>
         )}
       </div>
 
       {/* KPI Cards */}
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}><CardContent className="p-5"><Skeleton className="h-16 w-full" /></CardContent></Card>
-          ))}
-        </div>
-      ) : metrics ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Active Habits"   value={metrics.active_habits}        sub={`${metrics.remaining_today} remaining today`} icon={Zap} />
-          <MetricCard label="Best Streak"     value={`${metrics.best_streak?.current ?? 0}d`} sub={metrics.best_streak?.habit ?? '—'} icon={Flame} color="text-orange-400" />
-          <MetricCard label="Completion Rate" value={`${metrics.completion_rate_7d}%`}         sub="last 7 days"                      icon={TrendingUp} color="text-green-400" />
-          <MetricCard label="Total XP"        value={metrics.total_xp.toLocaleString()}         sub="all time"                         icon={Star} color="text-yellow-400" />
-        </div>
-      ) : null}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          label="Active Habits"
+          value={activeHabits}
+          sub={`${remainingToday} remaining today`}
+          icon={Zap}
+          loading={loading}
+        />
+        <MetricCard
+          label="Best Streak"
+          value={`${bestStreakDays}d`}
+          sub={bestStreakHabit}
+          icon={Flame}
+          color="text-orange-400"
+          loading={loading}
+        />
+        <MetricCard
+          label="Completion Rate"
+          value={`${completionRate}%`}
+          sub="last 7 days"
+          icon={TrendingUp}
+          color="text-green-400"
+          loading={loading}
+        />
+        <MetricCard
+          label="Total XP"
+          value={totalXp.toLocaleString()}
+          sub="all time"
+          icon={Star}
+          color="text-yellow-400"
+          loading={loading}
+        />
+      </div>
 
       {/* XP Level Progress */}
-      {userXp && (
+      {(xl || userXp) && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -117,28 +150,32 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{userXp.current_level?.icon ?? '🌱'}</span>
-                <span className="font-bold text-foreground">
-                  {userXp.current_level?.title ?? 'Beginner'}
-                </span>
-              </div>
-              <span className="text-sm text-muted-foreground font-mono">
-                {userXp.total_xp.toLocaleString()} XP
-              </span>
-            </div>
-            <Progress value={userXp.level_progress_pct} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{userXp.level_progress_pct.toFixed(0)}% to next level</span>
-              <span>{userXp.xp_to_next_level.toLocaleString()} XP needed</span>
-            </div>
+            {xl ? (
+              <Skeleton className="h-16 w-full" />
+            ) : userXp ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{levelIcon}</span>
+                    <span className="font-bold text-foreground">{levelTitle}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground font-mono">
+                    {userXp.total_xp.toLocaleString()} XP
+                  </span>
+                </div>
+                <Progress value={progressPct} className="h-2" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{progressPct.toFixed(0)}% to next level</span>
+                  <span>+{xpToNext.toLocaleString()} XP needed</span>
+                </div>
+              </>
+            ) : null}
           </CardContent>
         </Card>
       )}
 
       {/* Today summary */}
-      {metrics && (
+      {(ml || metrics) && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -146,22 +183,27 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <span className="text-foreground font-semibold">
-                  {metrics.completed_today} completed
-                </span>
+            {ml ? (
+              <Skeleton className="h-8 w-full" />
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span className="text-foreground font-semibold">
+                    {completedToday} completed
+                  </span>
+                </div>
+                <div className="text-muted-foreground text-sm">
+                  {remainingToday > 0
+                    ? `${remainingToday} habit${remainingToday > 1 ? 's' : ''} remaining`
+                    : '🎉 All done for today!'}
+                </div>
               </div>
-              <div className="text-muted-foreground text-sm">
-                {metrics.remaining_today > 0
-                  ? `${metrics.remaining_today} habit${metrics.remaining_today > 1 ? 's' : ''} remaining`
-                  : '🎉 All done for today!'}
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
+
     </div>
   )
 }
