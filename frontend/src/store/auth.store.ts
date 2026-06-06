@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
 
   logout: () => {
-    tokenStorage.clearTokens()
+    tokenStorage.clear()
     set({ user: null, isAuthenticated: false, isLoading: false })
   },
 }))
