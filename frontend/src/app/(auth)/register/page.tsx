@@ -14,7 +14,7 @@ import { Label }  from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { authApi } from '@/lib/auth'
-import { getErrorMessage } from '@/lib/api'
+import { extractErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 
 const registerSchema = z.object({
@@ -50,7 +50,7 @@ export default function RegisterPage() {
       toast.success(`Welcome to HabitForge, ${user.username}! 🎉`)
       router.push('/habits')
     } catch (err) {
-      toast.error(getErrorMessage(err))
+      toast.error(extractErrorMessage(err))
     } finally {
       setLoading(false)
     }

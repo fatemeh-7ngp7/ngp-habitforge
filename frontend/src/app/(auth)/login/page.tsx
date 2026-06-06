@@ -14,7 +14,7 @@ import { Label }    from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { authApi }  from '@/lib/auth'
-import { getErrorMessage } from '@/lib/api'
+import { extractErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 
 const loginSchema = z.object({
@@ -37,10 +37,10 @@ export default function LoginPage() {
     try {
       const { user } = await authApi.login(values)
       setUser(user)
-      toast.success(`Welcome back, ${user.first_name || user.username}! 🔥`)
+      toast.success(`Welcome back, ${user.username}! 🔥`)
       router.push('/habits')
     } catch (err) {
-      toast.error(getErrorMessage(err))
+      toast.error(extractErrorMessage(err))
     } finally {
       setLoading(false)
     }
