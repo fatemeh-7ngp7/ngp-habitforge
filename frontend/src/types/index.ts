@@ -94,21 +94,27 @@ export interface HabitReminder {
 
 export interface Habit {
   id: string;
-  title: string;          // backend field name
-  name?: string;          // some serializers expose this too
+  title: string;
+  name?: string;
   description: string;
   habit_type: HabitType;
-  frequency: HabitFrequency;
+  frequency_type: string;      // backend field (daily/weekly/custom)
+  frequency?: string;          // alias
   target_value: number | null;
-  target_unit: string | null;  // backend field name
-  unit?: string | null;        // alias kept for safety
-  xp_reward: number;
+  target_unit: string | null;
+  unit?: string | null;
+  xp_reward?: number;          // not in list serializer, only detail
+  xp_per_completion?: number;  // detail serializer field
   color: string;
   icon: string;
+  difficulty?: string;
+  is_public?: boolean;
+  is_archived?: boolean;
   category: HabitCategory | null;
-  is_active: boolean;
+  category_name?: string | null;
+  is_active?: boolean;
   created_at: string;
-  deleted_at: string | null;
+  deleted_at?: string | null;
   streak?: HabitStreak;
   completed_today?: boolean;
 }

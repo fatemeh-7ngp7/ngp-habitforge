@@ -83,7 +83,7 @@ function HabitCard({
               )}
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Zap className="w-3 h-3" />
-                {habit.xp_reward} XP
+                {habit.xp_reward ?? 0} XP
               </span>
               {habit.target_value && (
                 <span className="text-xs text-muted-foreground">
@@ -309,7 +309,7 @@ export default function HabitsPage() {
   const filtered = useMemo(() => {
     let result = habits.filter((h) => {
       const name = (h.title || h.name || '').toLowerCase()
-      const matchSearch = name.includes(search.toLowerCase())
+      const matchSearch = search === '' || name.includes(search.toLowerCase())
       const matchType   = filterType === "all" || h.habit_type === filterType
       return matchSearch && matchType
     })
@@ -321,7 +321,7 @@ export default function HabitsPage() {
         case "streak":
           return (b.streak?.current_streak ?? 0) - (a.streak?.current_streak ?? 0)
         case "xp":
-          return b.xp_reward - a.xp_reward
+          return (b.xp_per_completion ?? b.xp_reward ?? 0) - (a.xp_per_completion ?? a.xp_reward ?? 0)
         case "created":
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         default:

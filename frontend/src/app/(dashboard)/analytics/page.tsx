@@ -337,14 +337,14 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
           label="Total Habits"
-          value={metrics?.total_habits ?? 0}
-          sub={`${metrics?.active_streaks ?? 0} active streaks`}
+          value={metrics?.active_habits ?? 0}
+          sub={`${metrics?.remaining_today ?? 0} remaining today`}
           icon={Zap}
           loading={metricsLoading}
         />
         <MetricCard
           label="Best Streak"
-          value={`${metrics?.longest_streak ?? 0}d`}
+          value={`${metrics?.best_streak?.current ?? 0}d`}
           sub="all time"
           icon={Flame}
           color="text-orange-400"
