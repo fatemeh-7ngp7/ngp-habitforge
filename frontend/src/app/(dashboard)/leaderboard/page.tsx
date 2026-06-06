@@ -38,9 +38,9 @@ const PERIODS: { value: Period; label: string }[] = [
 ]
 
 function rankStyle(rank: number) {
-  if (rank === 1) return { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400', icon: '🥇' }
-  if (rank === 2) return { bg: 'bg-zinc-400/10',   border: 'border-zinc-400/30',   text: 'text-zinc-400',   icon: '🥈' }
-  if (rank === 3) return { bg: 'bg-amber-600/10',  border: 'border-amber-600/30',  text: 'text-amber-600',  icon: '🥉' }
+  if (rank === 1) return { bg: 'bg-primary/5', border: 'border-primary/30', text: 'text-primary', icon: '1st' }
+  if (rank === 2) return { bg: 'bg-muted/40',  border: 'border-border',     text: 'text-muted-foreground', icon: '2nd' }
+  if (rank === 3) return { bg: 'bg-muted/20',  border: 'border-border',     text: 'text-muted-foreground', icon: '3rd' }
   return { bg: '', border: 'border-border', text: 'text-muted-foreground', icon: `#${rank}` }
 }
 
@@ -175,8 +175,7 @@ export default function LeaderboardPage() {
             if (!entry) return null
             const heights = ['h-20', 'h-28', 'h-16']
             const labels  = ['2nd', '1st', '3rd']
-            const colors  = ['text-zinc-400', 'text-yellow-400', 'text-amber-600']
-            return (
+                      return (
               <div key={entry.username} className="flex flex-col items-center gap-2">
                 <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <span className="text-sm font-bold text-primary uppercase">
@@ -189,10 +188,10 @@ export default function LeaderboardPage() {
                 <div className={cn(
                   'w-full rounded-t-lg flex flex-col items-center justify-end pb-2 gap-1',
                   heights[i],
-                  i === 1 ? 'bg-yellow-500/20' : i === 0 ? 'bg-zinc-400/10' : 'bg-amber-600/10'
+                  'bg-primary/10'
                 )}>
-                  <span className={cn('text-lg font-black', colors[i])}>
-                    {['🥈','🥇','🥉'][i]}
+                  <span className="text-sm font-bold text-primary">
+                    {['2nd','1st','3rd'][i]}
                   </span>
                   <span className="text-[10px] text-muted-foreground font-mono">
                     {entry.score.toLocaleString()} XP

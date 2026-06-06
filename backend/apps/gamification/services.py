@@ -2,7 +2,7 @@
 Gamification service layer.
 """
 import logging
-from datetime import timedelta
+from datetime import timedelta, timezone as dt_timezone
 
 from django.db.models import Count, Sum
 from django.utils import timezone
@@ -27,7 +27,7 @@ def refresh_leaderboard(period="WEEKLY"):
         started_at = today.replace(day=1)
         qs_filter  = {"completed_at__date__gte": started_at}
     else:  # ALL_TIME
-        started_at = timezone.datetime(2025, 1, 1, tzinfo=timezone.utc).date()
+        started_at = timezone.datetime(2025, 1, 1, tzinfo=dt_timezone.utc).date()
         qs_filter  = {}
 
     # Get or create the leaderboard for this period
