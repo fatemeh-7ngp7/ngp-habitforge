@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { analyticsApi, gamificationApi } from '@/lib/analytics'
-import { DashboardMetrics, UserXP } from '@/types'
 import { useAuthStore } from '@/store/auth.store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -41,8 +40,8 @@ function MetricCard({
 
 export default function DashboardPage() {
   const user                          = useAuthStore((s) => s.user)
-  const [metrics, setMetrics]         = useState<DashboardMetrics | null>(null)
-  const [userXp, setUserXp]           = useState<UserXP | null>(null)
+  const [metrics, setMetrics]         = useState<any>(null)
+  const [userXp, setUserXp]           = useState<any>(null)
   const [loading, setLoading]         = useState(true)
 
   useEffect(() => {
@@ -77,7 +76,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-black text-foreground">
-            {greeting()}, {user?.first_name || user?.username} 👋
+            {greeting()}, {user?.username} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Here's what's happening with your habits today.
