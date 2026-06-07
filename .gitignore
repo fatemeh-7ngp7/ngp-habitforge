@@ -14,7 +14,9 @@ var/
 sdist/
 develop-eggs/
 .installed.cfg
-lib/
+# Python venv lib dirs (do NOT match frontend/src/lib)
+backend/.venv/lib/
+backend/.venv/lib64/
 lib64/
 
 # Virtual environments
