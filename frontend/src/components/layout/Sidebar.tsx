@@ -79,7 +79,7 @@ export function Sidebar() {
       <div className="border-t border-border pt-3 mt-3">
         <div className="px-3 py-2 mb-1">
           <div className="text-sm font-semibold text-foreground truncate">
-            {user?.full_name || user?.username}
+            {user?.username}
           </div>
           <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
         </div>
