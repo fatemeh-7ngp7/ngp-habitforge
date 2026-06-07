@@ -265,6 +265,7 @@ function ChallengesTab() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
   const [showCreate, setShowCreate] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [form, setForm] = useState({
     title: '', description: '',
     start_date: '', end_date: '',
@@ -275,6 +276,13 @@ function ChallengesTab() {
   const { data: challenges = [], isLoading } = useQuery({
     queryKey: QK.challenges,
     queryFn:  () => apiGet<Challenge[]>('/social/challenges/'),
+    staleTime: 30_000,
+  })
+
+  const { data: detail, isLoading: detailLoading } = useQuery({
+    queryKey: ['social', 'challenge', selectedId],
+    queryFn:  () => apiGet<Challenge>(`/social/challenges/${selectedId}/`),
+    enabled:  Boolean(selectedId),
     staleTime: 30_000,
   })
 
@@ -402,7 +410,7 @@ function ChallengesTab() {
             const isCreator = c.created_by?.username === user?.username
             const isFull    = c.participant_count >= c.max_participants
             return (
-              <Card key={c.id} className="hover:border-primary/30 transition-colors">
+              <Card key={c.id} className={`transition-colors cursor-pointer ${selectedId === c.id ? 'border-primary/40' : 'hover:border-primary/30'}`} onClick={() => setSelectedId(selectedId === c.id ? null : c.id)}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -434,13 +442,63 @@ function ChallengesTab() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => join.mutate(c.id)}
+                        onClick={(e) => { e.stopPropagation(); join.mutate(c.id) }}
                         disabled={join.isPending}
                       >
                         Join
                       </Button>
                     )}
                   </div>
+                  {/* Participants panel */}
+                  {selectedId === c.id && (
+                    <div className="mt-3 pt-3 border-t border-border" onClick={e => e.stopPropagation()}>
+                      {detailLoading ? (
+                        <div className="text-xs text-muted-foreground">Loading participants…</div>
+                      ) : (
+                      <>
+                        {/* Challenge description */}
+                        {detail?.description && (
+                          <p className="text-xs text-muted-foreground mb-3">{detail.description}</p>
+                        )}
+                        {/* Habit type + target */}
+                        {detail?.habit_type && (
+                          <div className="flex gap-3 mb-3 text-[11px] text-muted-foreground">
+                            <span>Type: <span className="text-foreground">{detail.habit_type}</span></span>
+                            {(detail as any).target_value && (
+                              <span>Target: <span className="text-foreground">{(detail as any).target_value} {(detail as any).target_unit ?? ''}</span></span>
+                            )}
+                          </div>
+                        )}
+                      </>
+                      )}
+                      {!detailLoading && detail?.participants && detail.participants.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Participants ({detail.participants.length})
+                          </p>
+                          {detail.participants
+                            .sort((a, b) => b.score - a.score)
+                            .map((p, i) => (
+                            <div key={p.user.id} className="flex items-center gap-2">
+                              <span className="text-[11px] font-mono text-muted-foreground w-5">
+                                {i + 1}.
+                              </span>
+                              <div className="h-6 w-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-primary uppercase">
+                                  {p.user.username.slice(0, 1)}
+                                </span>
+                              </div>
+                              <span className="text-xs text-foreground flex-1">{p.user.username}</span>
+                              <span className="text-[11px] font-mono text-primary">{p.score} pts</span>
+                              <span className="text-[11px] text-muted-foreground">{p.completions} done</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : !detailLoading ? (
+                        <p className="text-xs text-muted-foreground">No participants yet.</p>
+                      ) : null}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )
