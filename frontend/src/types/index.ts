@@ -48,6 +48,8 @@ export interface AuthResponse {
 export interface UserProfile {
   avatar: string | null;
   bio: string;
+  first_name: string; // اضافه شد
+  last_name:  string; // اضافه شد
   timezone: string;
   locale: string;
   onboarding_complete: boolean;
