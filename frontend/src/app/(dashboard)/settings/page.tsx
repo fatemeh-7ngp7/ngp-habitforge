@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth.store'
 import { authApi } from '@/lib/auth'
 import { apiPut, apiPost, apiGet } from '@/lib/api'
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/api'
-import { User, Shield, Trash2, Download, LogOut } from 'lucide-react'
+import { User, Shield, Trash2, Download, LogOut, History } from 'lucide-react'
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -30,6 +31,112 @@ function Section({ title, icon: Icon, children }: {
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
+  )
+}
+
+// ─── Audit log ────────────────────────────────────────────────────────────────
+
+interface AuditLogEntry {
+  id:            string
+  action:        string
+  resource_type: string
+  resource_id:   string
+  ip_address:    string | null
+  extra:         Record<string, unknown>
+  timestamp:     string
+}
+
+const ACTION_STYLE: Record<string, string> = {
+  CREATE: 'text-green-400 bg-green-400/10 border-green-400/20',
+  UPDATE: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  DELETE: 'text-destructive bg-destructive/10 border-destructive/20',
+  LOGIN:  'text-primary bg-primary/10 border-primary/20',
+  LOGOUT: 'text-muted-foreground bg-muted/40 border-border',
+  EXPORT: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+  OTHER:  'text-muted-foreground bg-muted/40 border-border',
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// resource_type is logged as the raw request path (e.g. "/api/v2/habits/<uuid>/complete/").
+// Strip the API prefix and any UUID segments so it reads like "habits / complete".
+function formatResourcePath(path: string): string {
+  const segments = path
+    .replace(/^\/api\/v2\//, '')
+    .replace(/\/$/, '')
+    .split('/')
+    .filter((seg) => seg && !UUID_RE.test(seg))
+
+  return segments.join(' / ') || path
+}
+
+function AuditLogList() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['audit', 'my-log'],
+    queryFn:  () => apiGet<AuditLogEntry[]>('/users/me/audit-log/'),
+    staleTime: 30_000,
+  })
+
+  const logs = data ?? []
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full rounded-lg" />
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-6">
+        Couldn't load activity history.
+      </p>
+    )
+  }
+
+  if (logs.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-6">
+        No recent activity yet.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+      {logs.map((log) => (
+        <div
+          key={log.id}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-muted/10"
+        >
+          <span
+            className={`shrink-0 text-[10px] font-mono font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${
+              ACTION_STYLE[log.action] ?? ACTION_STYLE.OTHER
+            }`}
+          >
+            {log.action}
+          </span>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-foreground truncate font-mono">
+              {formatResourcePath(log.resource_type)}
+            </p>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <p className="text-[11px] text-muted-foreground">
+              {new Date(log.timestamp).toLocaleString()}
+            </p>
+            {log.ip_address && (
+              <p className="text-[10px] text-muted-foreground/70 font-mono">{log.ip_address}</p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -367,6 +474,11 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+      </Section>
+
+      {/* Recent Activity — personal audit trail */}
+      <Section title="Recent Activity" icon={History}>
+        <AuditLogList />
       </Section>
 
     </div>
