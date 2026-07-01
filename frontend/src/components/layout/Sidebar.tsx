@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Zap, BarChart2,
-  Users, Trophy, Settings, LogOut,
+  Users, Trophy, Award, Settings, LogOut,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { authApi } from '@/lib/auth'
@@ -18,6 +18,7 @@ const NAV = [
   { label: 'Analytics',   href: '/analytics',    icon: BarChart2 },
   { label: 'Social',      href: '/social',       icon: Users },
   { label: 'Leaderboard', href: '/leaderboard',  icon: Trophy },
+  { label: 'Badges',      href: '/badges',       icon: Award },
   { label: 'Settings',    href: '/settings',     icon: Settings },
 ]
 
