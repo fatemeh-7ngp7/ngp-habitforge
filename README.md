@@ -3,19 +3,19 @@
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║     ███╗   ██╗ ██████╗ ██████╗     ██╗  ██╗ █████╗ ██████╗ ██╗████████╗   ║
-║     ████╗  ██║██╔════╝ ██╔══██╗    ██║  ██║██╔══██╗██╔══██╗██║╚══██╔══╝   ║
-║     ██╔██╗ ██║██║  ███╗██████╔╝    ███████║███████║██████╔╝██║   ██║      ║
-║     ██║╚██╗██║██║   ██║██╔═══╝     ██╔══██║██╔══██║██╔══██╗██║   ██║      ║
-║     ██║ ╚████║╚██████╔╝██║         ██║  ██║██║  ██║██████╔╝██║   ██║      ║
-║     ╚═╝  ╚═══╝ ╚═════╝ ╚═╝         ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝   ╚═╝      ║
+║     ███╗   ██╗ ██████╗ ██████╗     ██╗  ██╗ █████╗ ██████╗ ██╗████████╗      ║
+║     ████╗  ██║██╔════╝ ██╔══██╗    ██║  ██║██╔══██╗██╔══██╗██║╚══██╔══╝      ║
+║     ██╔██╗ ██║██║  ███╗██████╔╝    ███████║███████║██████╔╝██║   ██║         ║
+║     ██║╚██╗██║██║   ██║██╔═══╝     ██╔══██║██╔══██║██╔══██╗██║   ██║         ║
+║     ██║ ╚████║╚██████╔╝██║         ██║  ██║██║  ██║██████╔╝██║   ██║         ║
+║     ╚═╝  ╚═══╝ ╚═════╝ ╚═╝         ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝   ╚═╝         ║
 ║                                                                              ║
 ║              F O R G E                                                       ║
-║     ──────────────────────────────────────────────────────────────────────  ║
-║     Behavioral Infrastructure for the Next Generation of Human Performance  ║
+║     ──────────────────────────────────────────────────────────────────────   ║
+║     Behavioral Infrastructure for the Next Generation of Human Performance   ║
 ║                                                                              ║
-║   v5.0.0  ·  Django 5.1  ·  PostgreSQL 16  ·  Python 3.12  ·  Redis 7     ║
-║   77 tests passing  ·  87%+ coverage  ·  0 lint errors  ·  Phase 10 ✅     ║
+║   v5.0.0  ·  Django 5.1  ·  PostgreSQL 16  ·  Python 3.12  ·  Redis 7        ║
+║   77 tests passing  ·  87%+ coverage  ·  0 lint errors  ·  Phase 10 ✅       ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -120,39 +120,39 @@ The moat is the **behavioral data layer** — a richly structured, time-series-f
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                           API Consumer Layer                              │
+│                           API Consumer Layer                             │
 │       Web App (React/Next.js) · iOS (Swift) · Android (Kotlin)           │
-│       B2B Partners · Third-party Wellness Integrations                    │
+│       B2B Partners · Third-party Wellness Integrations                   │
 └──────────────────────────────┬───────────────────────────────────────────┘
                                │ HTTPS / TLS 1.3
 ┌──────────────────────────────▼───────────────────────────────────────────┐
-│                         NGINX (Reverse Proxy)                             │
-│          Rate limiting · Static file serving · SSL termination            │
+│                         NGINX (Reverse Proxy)                            │
+│          Rate limiting · Static file serving · SSL termination           │
 └──────────────────────────────┬───────────────────────────────────────────┘
                                │
 ┌──────────────────────────────▼───────────────────────────────────────────┐
-│                    Gunicorn (WSGI Application Server)                     │
+│                    Gunicorn (WSGI Application Server)                    │
 │                     Workers: 2×CPU+1 · Timeout: 120s                     │
 └──────────────────────────────┬───────────────────────────────────────────┘
                                │
 ┌──────────────────────────────▼───────────────────────────────────────────┐
-│                   Django 5.1 + Django REST Framework 3.15                 │
-│                                                                            │
-│   /api/v1/ (legacy compat) ·  /api/v2/ (current) · /api/docs/ · /admin/ │
-│                                                                            │
+│                   Django 5.1 + Django REST Framework 3.15                │
+│                                                                          │
+│   /api/v1/ (legacy compat) ·  /api/v2/ (current) · /api/docs/ · /admin/  │
+│                                                                          │
 │  ┌──────────┬──────────┬──────────┬──────────┬────────────┬────────────┐ │
 │  │  users   │  auth    │  habits  │ analytics│   social   │gamification│ │
 │  ├──────────┼──────────┼──────────┼──────────┼────────────┼────────────┤ │
 │  │CustomUser│ JWT Auth │  Habit   │Dashboard │ Friendship │   Badge    │ │
 │  │UserProfile│ Brute-  │HabitCompl│ Heatmap  │GroupChallng│  UserXP    │ │
-│  │          │ force    │HabitStreak│ Insights │SocialFeed  │Leaderboard │ │
-│  │          │ guard    │HabitRemndr│ Service  │            │ XPLevel    │ │
+│  │          │ force    │HabitStreak│ Insights │SocialFeed  │Leaderboard│ │
+│  │          │ guard    │HabitRemndr│ Service  │            │ XPLevel   │ │
 │  └──────────┴──────────┴──────────┴──────────┴────────────┴────────────┘ │
-│                                                                            │
-│   core/ (pagination, exceptions, healthz)                                  │
-│   audit/ (immutable append-only log — Phase 12)                            │
-│   notifications/ (Celery tasks, FCM/APNs — Phase 13)                       │
-└──────┬───────────────────────────────────────────────────────────┬────────┘
+│                                                                          │
+│   core/ (pagination, exceptions, healthz)                                │
+│   audit/ (immutable append-only log — Phase 12)                          │
+│   notifications/ (Celery tasks, FCM/APNs — Phase 13)                     │
+└──────┬───────────────────────────────────────────────────────────┬───────┘
        │                                                           │
        ▼                                                           ▼
 ┌──────────────┐   ┌──────────────┐   ┌──────────────────────────────────┐
@@ -1134,7 +1134,7 @@ See `security/sbom/sbom.spdx.json` for the full Software Bill of Materials.
  ║   NGP HABITFORGE                                      ║
  ║   Behavioral infrastructure for the next generation   ║
  ║                                                       ║
- ║   v5.0.0 · Django 5.1 · PostgreSQL 16 · Python 3.12  ║
+ ║   v5.0.0 · Django 5.1 · PostgreSQL 16 · Python 3.12   ║
  ║                                                       ║
  ╚═══════════════════════════════════════════════════════╝
 ```
