@@ -69,7 +69,7 @@ export interface User {
 
 // MUST be uppercase — matches Django TextChoices exactly
 export type HabitType = "BINARY" | "MEASURABLE" | "TIME_BASED";
-export type HabitFrequency = "daily" | "weekly" | "custom";
+export type HabitFrequency = "DAILY" | "WEEKLY" | "CUSTOM";
 
 export interface HabitCategory {
   id: string;
@@ -100,7 +100,7 @@ export interface Habit {
   name?: string;
   description: string;
   habit_type: HabitType;
-  frequency_type: string;      // backend field (daily/weekly/custom)
+  frequency_type: HabitFrequency;      // backend field (daily/weekly/custom)
   frequency?: string;          // alias
   target_value: number | null;
   target_unit: string | null;
@@ -130,15 +130,17 @@ export interface HabitCompletion {
   xp_earned: number;
 }
 
-// These field names MUST match the Django CreateHabitSerializer exactly
+// These field names MUST match the Django HabitCreateSerializer exactly
 export interface CreateHabitPayload {
-  title: string;           // NOT "name"
+  title: string;                // NOT "name"
   description?: string;
-  habit_type: HabitType;   // "BINARY" | "MEASURABLE" | "TIME_BASED"
-  frequency: HabitFrequency;
+  habit_type: HabitType;        // "BINARY" | "MEASURABLE" | "TIME_BASED"
+  frequency_type: HabitFrequency; // NOT "frequency" — matches backend field name
+  frequency_days?: number[];    // weekday ints 0=Mon…6=Sun; used when frequency_type = WEEKLY
+  frequency_interval?: number;  // every N days; used when frequency_type = CUSTOM
   target_value?: number;
-  target_unit?: string;    // NOT "unit"
-  xp_reward?: number;
+  target_unit?: string;         // NOT "unit"
+  difficulty?: string;          // "EASY" | "MEDIUM" | "HARD"
   color?: string;
   icon?: string;
   category?: string;

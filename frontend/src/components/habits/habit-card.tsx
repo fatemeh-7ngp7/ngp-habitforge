@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,18 +30,21 @@ import { cn } from "@/lib/utils";
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_ICONS = {
-  binary: Circle,
-  measurable: Target,
-  time_based: Timer,
+  BINARY: Circle,
+  MEASURABLE: Target,
+  TIME_BASED: Timer,
 };
 
-const LEVEL_COLOR: Record<string, string> = {
-  Bronze: "text-amber-600",
-  Silver: "text-zinc-400",
-  Gold: "text-yellow-400",
-  Platinum: "text-cyan-400",
-  Diamond: "text-blue-400",
-  Legend: "text-forge",
+const FREQUENCY_LABELS: Record<string, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  CUSTOM: "Custom",
+};
+
+const XP_BY_DIFFICULTY: Record<string, number> = {
+  EASY: 10,
+  MEDIUM: 25,
+  HARD: 50,
 };
 
 function StreakPip({ filled }: { filled: boolean }) {
@@ -69,9 +71,11 @@ export function HabitCard({ habit, compact = false }: HabitCardProps) {
   const completeHabit = useCompleteHabit();
   const deleteHabit = useDeleteHabit();
 
-  const Icon = TYPE_ICONS[habit.habit_type];
+  const Icon = TYPE_ICONS[habit.habit_type] ?? Circle;
   const streak = habit.streak?.current_streak ?? 0;
   const isCompletedToday = habit.completed_today || justCompleted;
+  const xp = habit.xp_per_completion ?? XP_BY_DIFFICULTY[habit.difficulty ?? "MEDIUM"] ?? 25;
+  const frequencyLabel = FREQUENCY_LABELS[habit.frequency_type] ?? habit.frequency_type;
 
   const handleComplete = async () => {
     if (isCompletedToday) return;
@@ -84,7 +88,7 @@ export function HabitCard({ habit, compact = false }: HabitCardProps) {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete "${habit.name}"? This cannot be undone.`)) return;
+    if (!confirm(`Delete "${habit.title}"? This cannot be undone.`)) return;
     await deleteHabit.mutateAsync(habit.id);
   };
 
@@ -109,13 +113,13 @@ export function HabitCard({ habit, compact = false }: HabitCardProps) {
         {/* Name + meta */}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ngp-text">
-            {habit.name}
+            {habit.title}
           </p>
           <p className="text-[11px] text-ngp-muted">
-            {habit.habit_type === "binary"
+            {habit.habit_type === "BINARY"
               ? "Binary"
-              : `Target: ${habit.target_value} ${habit.unit ?? ""}`}
-            {habit.category && ` · ${habit.category.name}`}
+              : `Target: ${habit.target_value} ${habit.target_unit ?? ""}`}
+            {habit.category_name && ` · ${habit.category_name}`}
           </p>
         </div>
 
@@ -212,7 +216,7 @@ export function HabitCard({ habit, compact = false }: HabitCardProps) {
             <Icon className="h-5 w-5" style={{ color: habit.color }} />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-ngp-text truncate">{habit.name}</p>
+            <p className="font-semibold text-ngp-text truncate">{habit.title}</p>
             {habit.description && (
               <p className="text-[11px] text-ngp-muted mt-0.5 line-clamp-1">
                 {habit.description}
@@ -270,19 +274,19 @@ export function HabitCard({ habit, compact = false }: HabitCardProps) {
       {/* Footer: meta + complete button */}
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {habit.category && (
+          {habit.category_name && (
             <Badge
               variant="outline"
               className="border-border-dark text-ngp-muted text-[10px] h-5 px-1.5"
             >
-              {habit.category.name}
+              {habit.category_name}
             </Badge>
           )}
           <span className="text-[10px] font-mono text-ngp-muted/60 uppercase tracking-wide">
-            {habit.frequency}
+            {frequencyLabel}
           </span>
           <span className="text-[10px] text-forge/80 font-semibold">
-            +{habit.xp_reward} XP
+            +{xp} XP
           </span>
         </div>
 

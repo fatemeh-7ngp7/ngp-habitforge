@@ -3,7 +3,7 @@
 // components/habits/create-habit-dialog.tsx
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Flame, Plus, X } from "lucide-react";
+import { Flame, Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -29,25 +29,37 @@ import {
 import { useCategories, useCreateHabit } from "@/hooks/use-habits";
 
 // ─── Schema ────────────────────────────────────────────────────────────────────
+// Field names and enum values below MUST match the Django HabitCreateSerializer
+// exactly — this is what the previous version of this file got wrong.
 
 const schema = z
   .object({
-    name: z.string().min(2, "Name must be at least 2 characters").max(100),
+    title: z.string().min(2, "Title must be at least 2 characters").max(100),
     description: z.string().max(500).optional(),
-    habit_type: z.enum(["binary", "measurable", "time_based"]),
-    frequency: z.enum(["daily", "weekly", "custom"]),
+    habit_type: z.enum(["BINARY", "MEASURABLE", "TIME_BASED"]),
+    frequency_type: z.enum(["DAILY", "WEEKLY", "CUSTOM"]),
+    frequency_days: z.array(z.number().int().min(0).max(6)).optional(),
+    frequency_interval: z.number().int().positive().optional(),
     target_value: z.number().positive().optional(),
-    unit: z.string().max(30).optional(),
+    target_unit: z.string().max(30).optional(),
+    difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
     color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
     category: z.string().optional(),
   })
   .refine(
     (d) =>
-      d.habit_type === "binary" ||
+      d.habit_type === "BINARY" ||
       (d.target_value !== undefined && d.target_value > 0),
     {
       message: "Target value is required for measurable and time-based habits",
       path: ["target_value"],
+    }
+  )
+  .refine(
+    (d) => d.habit_type === "BINARY" || Boolean(d.target_unit),
+    {
+      message: "Unit is required for measurable and time-based habits",
+      path: ["target_unit"],
     }
   );
 
@@ -67,19 +79,21 @@ const PALETTE = [
 ];
 
 const HABIT_TYPE_LABELS: Record<string, { label: string; hint: string }> = {
-  binary: {
+  BINARY: {
     label: "Binary",
     hint: "Did it or not — simple yes/no completion",
   },
-  measurable: {
+  MEASURABLE: {
     label: "Measurable",
     hint: "Track a quantity (e.g. 5km, 8 glasses)",
   },
-  time_based: {
+  TIME_BASED: {
     label: "Time-based",
     hint: "Track duration (e.g. 30 minutes of reading)",
   },
 };
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -102,14 +116,26 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      habit_type: "binary",
-      frequency: "daily",
+      habit_type: "BINARY",
+      frequency_type: "DAILY",
+      frequency_days: [],
+      frequency_interval: 1,
+      difficulty: "MEDIUM",
       color: "#E8400C",
     },
   });
 
   const habitType = watch("habit_type");
+  const frequencyType = watch("frequency_type");
+  const frequencyDays = watch("frequency_days") ?? [];
   const selectedColor = watch("color");
+
+  const toggleDay = (idx: number) => {
+    const next = frequencyDays.includes(idx)
+      ? frequencyDays.filter((d) => d !== idx)
+      : [...frequencyDays, idx].sort();
+    setValue("frequency_days", next);
+  };
 
   const onSubmit = async (data: FormData) => {
     await createHabit.mutateAsync(data);
@@ -137,19 +163,19 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
-          {/* Name */}
+          {/* Title */}
           <div className="space-y-1.5">
-            <Label htmlFor="name" className="text-ngp-muted text-xs uppercase tracking-wider">
-              Habit Name *
+            <Label htmlFor="title" className="text-ngp-muted text-xs uppercase tracking-wider">
+              Habit Title *
             </Label>
             <Input
-              id="name"
+              id="title"
               placeholder="e.g. Morning Run"
-              {...register("name")}
+              {...register("title")}
               className="bg-ngp-dark border-border-dark text-ngp-text placeholder:text-ngp-muted/50 focus:border-forge/60"
             />
-            {errors.name && (
-              <p className="text-xs text-red-400">{errors.name.message}</p>
+            {errors.title && (
+              <p className="text-xs text-red-400">{errors.title.message}</p>
             )}
           </div>
 
@@ -172,7 +198,7 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
               Habit Type *
             </Label>
             <div className="grid grid-cols-3 gap-2">
-              {(["binary", "measurable", "time_based"] as const).map((type) => (
+              {(["BINARY", "MEASURABLE", "TIME_BASED"] as const).map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -195,7 +221,7 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
           </div>
 
           {/* Target value (measurable / time_based only) */}
-          {habitType !== "binary" && (
+          {habitType !== "BINARY" && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="target_value" className="text-ngp-muted text-xs uppercase tracking-wider">
@@ -205,7 +231,7 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
                   id="target_value"
                   type="number"
                   min={1}
-                  placeholder={habitType === "time_based" ? "30" : "5"}
+                  placeholder={habitType === "TIME_BASED" ? "30" : "5"}
                   {...register("target_value", {
                     valueAsNumber: true,
                   })}
@@ -218,15 +244,20 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="unit" className="text-ngp-muted text-xs uppercase tracking-wider">
-                  Unit
+                <Label htmlFor="target_unit" className="text-ngp-muted text-xs uppercase tracking-wider">
+                  Unit *
                 </Label>
                 <Input
-                  id="unit"
-                  placeholder={habitType === "time_based" ? "min" : "km"}
-                  {...register("unit")}
+                  id="target_unit"
+                  placeholder={habitType === "TIME_BASED" ? "min" : "km"}
+                  {...register("target_unit")}
                   className="bg-ngp-dark border-border-dark text-ngp-text placeholder:text-ngp-muted/50 focus:border-forge/60"
                 />
+                {errors.target_unit && (
+                  <p className="text-xs text-red-400">
+                    {errors.target_unit.message}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -238,18 +269,18 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
                 Frequency
               </Label>
               <Select
-                defaultValue="daily"
+                defaultValue="DAILY"
                 onValueChange={(v) =>
-                  setValue("frequency", v as "daily" | "weekly" | "custom")
+                  setValue("frequency_type", v as "DAILY" | "WEEKLY" | "CUSTOM")
                 }
               >
                 <SelectTrigger className="bg-ngp-dark border-border-dark text-ngp-text">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card-dark border-border-dark text-ngp-text">
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="DAILY">Daily</SelectItem>
+                  <SelectItem value="WEEKLY">Specific days</SelectItem>
+                  <SelectItem value="CUSTOM">Every N days</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -273,6 +304,83 @@ export function CreateHabitDialog({ trigger }: CreateHabitDialogProps) {
                 </Select>
               </div>
             )}
+          </div>
+
+          {/* Day-of-week picker — only for WEEKLY frequency */}
+          {frequencyType === "WEEKLY" && (
+            <div className="space-y-1.5">
+              <Label className="text-ngp-muted text-xs uppercase tracking-wider">
+                Which days?
+              </Label>
+              <div className="flex items-center gap-1.5">
+                {WEEKDAY_LABELS.map((label, idx) => {
+                  const selected = frequencyDays.includes(idx);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleDay(idx)}
+                      className={`h-8 w-8 rounded-md text-[11px] font-semibold border transition-colors ${
+                        selected
+                          ? "border-forge/60 bg-forge/10 text-forge"
+                          : "border-border-dark bg-ngp-dark text-ngp-muted hover:border-border-dark2"
+                      }`}
+                    >
+                      {label[0]}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-ngp-muted/70">
+                {frequencyDays.length === 0
+                  ? "No days selected — leave empty for every day"
+                  : `${frequencyDays.length} day(s) selected`}
+              </p>
+            </div>
+          )}
+
+          {/* Interval input — only for CUSTOM frequency */}
+          {frequencyType === "CUSTOM" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="frequency_interval" className="text-ngp-muted text-xs uppercase tracking-wider">
+                Every how many days?
+              </Label>
+              <Input
+                id="frequency_interval"
+                type="number"
+                min={1}
+                {...register("frequency_interval", { valueAsNumber: true })}
+                className="bg-ngp-dark border-border-dark text-ngp-text placeholder:text-ngp-muted/50 focus:border-forge/60"
+              />
+            </div>
+          )}
+
+          {/* Difficulty */}
+          <div className="space-y-1.5">
+            <Label className="text-ngp-muted text-xs uppercase tracking-wider">
+              Difficulty
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { value: "EASY", label: "Easy", xp: 10 },
+                { value: "MEDIUM", label: "Medium", xp: 25 },
+                { value: "HARD", label: "Hard", xp: 50 },
+              ] as const).map((d) => (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => setValue("difficulty", d.value)}
+                  className={`rounded-lg border p-2 text-center transition-all ${
+                    watch("difficulty") === d.value
+                      ? "border-forge/60 bg-forge/10 text-forge"
+                      : "border-border-dark bg-ngp-dark text-ngp-muted hover:border-border-dark2"
+                  }`}
+                >
+                  <div className="text-xs font-semibold">{d.label}</div>
+                  <div className="text-[10px] opacity-75">+{d.xp} XP</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Colour picker */}
