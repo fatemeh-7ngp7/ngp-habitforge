@@ -100,7 +100,7 @@ export interface Habit {
   name?: string;
   description: string;
   habit_type: HabitType;
-  frequency_type: HabitFrequency;      // backend field (daily/weekly/custom)
+  frequency_type: string;      // backend field (daily/weekly/custom)
   frequency?: string;          // alias
   target_value: number | null;
   target_unit: string | null;
@@ -154,13 +154,20 @@ export interface CompleteHabitPayload {
 // ─── Analytics ─────────────────────────────────────────────────────────────────
 
 export interface DashboardMetrics {
-  total_habits: number;
-  active_streaks: number;
-  longest_streak: number;
-  total_completions: number;
+  active_habits: number;
+  completed_today: number;
+  remaining_today: number;
   completions_this_week: number;
+  completion_rate_7d: number;
+  week_delta_pct: number;
+  total_completions: number;
   total_xp: number;
-  current_level: string;
+  best_streak: {
+    current: number;
+    longest: number;
+    habit: string;
+  } | null;
+  as_of: string;
 }
 
 export interface HeatmapEntry {
@@ -197,10 +204,17 @@ export interface Badge {
 
 export interface XPStatus {
   total_xp: number;
-  current_level: number;
-  level_title: string;
-  xp_for_next_level: number;
-  xp_progress: number;
+  current_level: {
+    level: number;
+    xp_required: number;
+    title: string;
+    icon: string;
+    color: string;
+  };
+  xp_to_next_level: number;
+  level_progress_pct: number;
+  badges_earned: number;
+  updated_at: string;
 }
 
 export interface LeaderboardEntry {

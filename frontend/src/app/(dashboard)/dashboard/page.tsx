@@ -65,19 +65,19 @@ export default function DashboardPage() {
     return 'Good evening'
   }
 
-  // Derive values — handle both backend shapes safely
-  const activeHabits     = metrics?.active_habits     ?? metrics?.total_habits     ?? 0
-  const bestStreakDays   = metrics?.best_streak?.current ?? metrics?.longest_streak  ?? 0
-  const bestStreakHabit  = metrics?.best_streak?.habit   ?? '—'
-  const completionRate   = metrics?.completion_rate_7d   ?? 0
-  const totalXp          = userXp?.total_xp              ?? metrics?.total_xp        ?? 0
-  const remainingToday   = metrics?.remaining_today      ?? 0
-  const completedToday   = metrics?.completed_today      ?? 0
-  const levelTitle       = userXp?.current_level?.title  ?? 'Beginner'
-  const levelIcon        = userXp?.current_level?.icon   ?? '🌱'
-  const levelColor       = userXp?.current_level?.color  ?? '#E8400C'
-  const progressPct      = userXp?.level_progress_pct    ?? 0
-  const xpToNext         = userXp?.xp_to_next_level      ?? 0
+  // Derive values — types now match the real backend shape
+  const activeHabits     = metrics?.active_habits        ?? 0
+  const bestStreakDays   = metrics?.best_streak?.current  ?? 0
+  const bestStreakHabit  = metrics?.best_streak?.habit    ?? '—'
+  const completionRate   = metrics?.completion_rate_7d    ?? 0
+  const totalXp          = userXp?.total_xp               ?? metrics?.total_xp ?? 0
+  const remainingToday   = metrics?.remaining_today       ?? 0
+  const completedToday   = metrics?.completed_today       ?? 0
+  const levelTitle       = userXp?.current_level?.title   ?? 'Beginner'
+  const levelIcon        = userXp?.current_level?.icon    ?? '🌱'
+  const levelColor       = userXp?.current_level?.color   ?? '#E8400C'
+  const progressPct      = userXp?.level_progress_pct     ?? 0
+  const xpToNext         = userXp?.xp_to_next_level       ?? 0
 
   return (
     <div className="space-y-8">

@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import {
-  useDashboard, useHeatmap, useWeeklyBreakdown,
+  useDashboard, useWeeklyBreakdown,
   useInsights, useXP, useMyBadges,
 } from '@/hooks/use-habits'
+import { ActivityHeatmap } from '@/components/dashboard/activity-heatmap'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,48 +14,6 @@ import {
   CheckCircle2, Lightbulb, AlertTriangle,
   ArrowUp, Calendar,
 } from 'lucide-react'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-function heatColor(count: number) {
-  if (count === 0) return 'bg-muted'
-  if (count === 1) return 'bg-primary/25'
-  if (count === 2) return 'bg-primary/50'
-  if (count === 3) return 'bg-primary/75'
-  return 'bg-primary'
-}
-
-function buildGrid(entries: Array<{ date: string; count: number }>, year: number) {
-  const lookup: Record<string, number> = {}
-  for (const e of entries) lookup[e.date] = e.count
-
-  const jan1       = new Date(year, 0, 1)
-  const startOffset = (jan1.getDay() + 6) % 7
-  const isLeap     = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
-  const daysInYear  = isLeap ? 366 : 365
-
-  const weeks: Array<Array<{ date: string; count: number; valid: boolean }>> = []
-  let week: typeof weeks[0] = []
-
-  for (let i = 0; i < startOffset; i++) {
-    week.push({ date: '', count: 0, valid: false })
-  }
-
-  for (let d = 0; d < daysInYear; d++) {
-    const date    = new Date(year, 0, d + 1)
-    const dateStr = date.toISOString().slice(0, 10)
-    week.push({ date: dateStr, count: lookup[dateStr] ?? 0, valid: true })
-    if (week.length === 7) { weeks.push(week); week = [] }
-  }
-  if (week.length > 0) {
-    while (week.length < 7) week.push({ date: '', count: 0, valid: false })
-    weeks.push(week)
-  }
-  return weeks
-}
 
 // ─── MetricCard ───────────────────────────────────────────────────────────────
 
@@ -90,101 +49,6 @@ function MetricCard({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-// ─── Heatmap ──────────────────────────────────────────────────────────────────
-
-function Heatmap() {
-  const year = new Date().getFullYear()
-  const { data: raw, isLoading } = useHeatmap(year)
-
-  // Backend returns { year, heatmap: {"2026-01-01": 3, ...}, total }
-  const backend = raw as unknown as { year: number; heatmap: Record<string, number>; total: number } | null
-  const entries = backend?.heatmap
-    ? Object.entries(backend.heatmap).map(([date, count]) => ({ date, count }))
-    : []
-
-  const grid          = buildGrid(entries, year)
-  const totalComplete = backend?.total ?? 0
-  const activeDays    = entries.filter((e) => e.count > 0).length
-
-  // Month label positions
-  const monthLabels: Array<{ label: string; col: number }> = []
-  let lastMonth = -1
-  grid.forEach((_, wi) => {
-    const d = new Date(year, 0, wi * 7 + 1)
-    const m = d.getMonth()
-    if (m !== lastMonth && d.getFullYear() === year) {
-      monthLabels.push({ label: MONTHS[m], col: wi })
-      lastMonth = m
-    }
-  })
-
-  if (isLoading) {
-    return <Skeleton className="h-[120px] w-full" />
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          <span className="font-mono font-bold text-foreground">{totalComplete}</span>{' '}
-          completions · <span className="font-mono font-bold text-primary">{activeDays}</span>{' '}
-          active days in {year}
-        </span>
-        <div className="flex items-center gap-1">
-          <span className="mr-1">Less</span>
-          {['bg-muted','bg-primary/25','bg-primary/50','bg-primary/75','bg-primary'].map((c, i) => (
-            <span key={i} className={`h-2.5 w-2.5 rounded-sm ${c}`} />
-          ))}
-          <span className="ml-1">More</span>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <div className="inline-flex flex-col gap-0 min-w-full">
-          {/* Month labels */}
-          <div className="flex ml-6 mb-1 relative h-4">
-            {monthLabels.map(({ label, col }) => (
-              <span
-                key={label}
-                className="absolute text-[10px] text-muted-foreground"
-                style={{ left: col * 13 }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex gap-0.5">
-            {/* Day labels */}
-            <div className="flex flex-col gap-0.5 mr-1 shrink-0 justify-start">
-              {DAYS.map((d, i) => (
-                <div key={i} className="h-2.5 text-[9px] text-muted-foreground/60 flex items-center">
-                  {i % 2 === 0 ? d.slice(0, 1) : ''}
-                </div>
-              ))}
-            </div>
-
-            {/* Weeks */}
-            {grid.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-0.5">
-                {week.map((cell, di) => (
-                  <div
-                    key={di}
-                    title={cell.valid ? `${cell.date}: ${cell.count} completion${cell.count !== 1 ? 's' : ''}` : undefined}
-                    className={`h-2.5 w-2.5 rounded-sm transition-transform hover:scale-125 cursor-default ${
-                      cell.valid ? heatColor(cell.count) : 'opacity-0'
-                    }`}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -415,7 +279,7 @@ export default function AnalyticsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Heatmap />
+          <ActivityHeatmap />
         </CardContent>
       </Card>
 

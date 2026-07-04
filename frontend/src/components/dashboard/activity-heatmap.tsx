@@ -1,10 +1,10 @@
 "use client";
 
 // components/dashboard/activity-heatmap.tsx
-// Renders a GitHub-style contribution heatmap using the API's
-// { date, count } array. 52 weeks × 7 days grid.
+// Renders a GitHub-style contribution heatmap from the analytics heatmap
+// endpoint, which returns { year, heatmap: {"YYYY-MM-DD": count, ...}, total }.
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useHeatmap } from "@/hooks/use-habits";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -85,14 +85,23 @@ interface HeatmapProps {
 }
 
 export function ActivityHeatmap({ year = new Date().getFullYear() }: HeatmapProps) {
-  const { data = [], isLoading } = useHeatmap(year);
-  const [tooltip, setTooltip] = useState<{ date: string; count: number } | null>(null);
+  const { data: raw, isLoading } = useHeatmap(year);
 
-  const grid = useMemo(() => buildGrid(data, year), [data, year]);
+  // Backend returns { year, heatmap: {"2026-01-01": 3, ...}, total }
+  const backend = raw as unknown as { year: number; heatmap: Record<string, number>; total: number } | null;
+  const entries = useMemo(
+    () =>
+      backend?.heatmap
+        ? Object.entries(backend.heatmap).map(([date, count]) => ({ date, count }))
+        : [],
+    [backend]
+  );
+
+  const grid = useMemo(() => buildGrid(entries, year), [entries, year]);
   const monthLabels = useMemo(() => getMonthLabels(year, grid.length), [year, grid.length]);
 
-  const totalCompletions = data.reduce((acc, e) => acc + e.count, 0);
-  const activeDays = data.filter((e) => e.count > 0).length;
+  const totalCompletions = backend?.total ?? 0;
+  const activeDays = entries.filter((e) => e.count > 0).length;
 
   if (isLoading) {
     return (
@@ -133,7 +142,7 @@ export function ActivityHeatmap({ year = new Date().getFullYear() }: HeatmapProp
       <div className="overflow-x-auto">
         <div className="inline-block min-w-full">
           {/* Month labels */}
-          <div className="flex mb-1 ml-7">
+          <div className="flex mb-1 ml-7 relative h-4">
             {monthLabels.map(({ month, col }, i) => (
               <div
                 key={i}
@@ -144,43 +153,37 @@ export function ActivityHeatmap({ year = new Date().getFullYear() }: HeatmapProp
               </div>
             ))}
           </div>
-          <div style={{ paddingTop: 14 }}>
-            <div className="flex gap-0.5">
-              {/* Day labels */}
-              <div className="flex flex-col gap-0.5 mr-1 shrink-0">
-                {DAYS.map((d, i) => (
-                  <div key={i} className="h-2.5 text-[9px] text-ngp-muted/60 leading-none flex items-center">
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {/* Weeks */}
-              {grid.map((week, wi) => (
-                <div key={wi} className="flex flex-col gap-0.5">
-                  {week.map((cell, di) => (
-                    <div
-                      key={di}
-                      className={cn(
-                        "h-2.5 w-2.5 rounded-[2px] transition-transform hover:scale-125 cursor-default",
-                        cell.isCurrentYear
-                          ? countToOpacity(cell.count)
-                          : "opacity-0"
-                      )}
-                      onMouseEnter={() =>
-                        cell.isCurrentYear && setTooltip(cell)
-                      }
-                      onMouseLeave={() => setTooltip(null)}
-                      title={
-                        cell.date
-                          ? `${cell.date}: ${cell.count} completion${cell.count !== 1 ? "s" : ""}`
-                          : undefined
-                      }
-                    />
-                  ))}
+          <div className="flex gap-0.5">
+            {/* Day labels */}
+            <div className="flex flex-col gap-0.5 mr-1 shrink-0">
+              {DAYS.map((d, i) => (
+                <div key={i} className="h-2.5 text-[9px] text-ngp-muted/60 leading-none flex items-center">
+                  {d}
                 </div>
               ))}
             </div>
+
+            {/* Weeks */}
+            {grid.map((week, wi) => (
+              <div key={wi} className="flex flex-col gap-0.5">
+                {week.map((cell, di) => (
+                  <div
+                    key={di}
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-[2px] transition-transform hover:scale-125 cursor-default",
+                      cell.isCurrentYear
+                        ? countToOpacity(cell.count)
+                        : "opacity-0"
+                    )}
+                    title={
+                      cell.date
+                        ? `${cell.date}: ${cell.count} completion${cell.count !== 1 ? "s" : ""}`
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>
