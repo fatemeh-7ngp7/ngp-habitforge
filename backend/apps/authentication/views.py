@@ -6,6 +6,8 @@ All responses follow the standard envelope:
 import logging
 
 from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_decode
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -19,7 +21,10 @@ from .serializers import (
     LoginSerializer,
     RegisterSerializer,
     UserSummarySerializer,
+    VerifyEmailSerializer,
 )
+from .tasks import send_verification_email
+from .tokens import email_verification_token
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +71,8 @@ class RegisterView(APIView):
 
         # Generate tokens immediately after registration
         refresh = RefreshToken.for_user(user)
+
+        send_verification_email.delay(str(user.pk))
 
         return success_response(
             data={
@@ -237,4 +244,70 @@ class MeView(APIView):
     def get(self, request):
         return success_response(
             data=UserSummarySerializer(request.user).data
+        )
+
+
+class VerifyEmailView(APIView):
+    """
+    POST /api/v2/auth/email/verify/
+    Body: { "uid": "<base64 user id>", "token": "<verification token>" }
+    Marks the user's email as verified. Public endpoint — the token itself
+    is the proof of identity (sent only to the user's registered inbox).
+    """
+    permission_classes = [AllowAny]
+    throttle_scope = "anon"
+
+    @extend_schema(
+        tags=["auth"],
+        summary="Verify email address",
+        request=VerifyEmailSerializer,
+        responses={200: OpenApiResponse(description="Email verified")},
+    )
+    def post(self, request):
+        from apps.users.models import CustomUser
+
+        serializer = VerifyEmailSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response(serializer.errors)
+
+        try:
+            uid = urlsafe_base64_decode(serializer.validated_data["uid"]).decode()
+            user = CustomUser.objects.get(pk=uid)
+        except (CustomUser.DoesNotExist, ValueError, TypeError, OverflowError):
+            return error_response("Invalid verification link.", status.HTTP_400_BAD_REQUEST)
+
+        if user.is_verified:
+            return success_response(data={"message": "Email already verified."})
+
+        if not email_verification_token.check_token(user, serializer.validated_data["token"]):
+            return error_response("This verification link is invalid or has expired.", status.HTTP_400_BAD_REQUEST)
+
+        user.is_verified = True
+        user.save(update_fields=["is_verified", "updated_at"])
+        logger.info("Email verified for user: %s", user.email)
+
+        return success_response(data={"message": "Email verified successfully."})
+
+
+class ResendVerificationEmailView(APIView):
+    """
+    POST /api/v2/auth/email/resend/
+    Re-sends the verification email to the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "user"
+
+    @extend_schema(
+        tags=["auth"],
+        summary="Resend verification email",
+        responses={200: OpenApiResponse(description="Verification email re-sent")},
+    )
+    def post(self, request):
+        if request.user.is_verified:
+            return error_response("Email is already verified.", status.HTTP_400_BAD_REQUEST)
+
+        send_verification_email.delay(str(request.user.pk))
+
+        return success_response(
+            data={"message": "Verification email sent. Please check your inbox."}
         )

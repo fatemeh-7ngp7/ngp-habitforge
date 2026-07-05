@@ -174,3 +174,12 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save(update_fields=["password", "updated_at"])
         logger.info("Password changed for user: %s", user.email)
         return user
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    """
+    Validates the uid/token pair from a verification link.
+    Actual token verification happens in the view (needs DB lookup by uid).
+    """
+    uid = serializers.CharField()
+    token = serializers.CharField()

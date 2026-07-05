@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/api'
-import { User, Shield, Trash2, Download, LogOut, History } from 'lucide-react'
+import { User, Shield, Trash2, Download, LogOut, History, Mail } from 'lucide-react'
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -163,6 +163,7 @@ export default function SettingsPage() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [resendingVerification, setResendingVerification] = useState(false)
 
   // ── Profile update ─────────────────────────────────────────────────────────
 
@@ -229,6 +230,20 @@ export default function SettingsPage() {
       toast.success('Data export downloaded')
     } catch (err) {
       toast.error(getErrorMessage(err))
+    }
+  }
+
+  // ── Email verification ────────────────────────────────────────────────────
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true)
+    try {
+      await apiPost('/auth/email/resend/', {})
+      toast.success('Verification email sent. Please check your inbox.')
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setResendingVerification(false)
     }
   }
 
@@ -414,6 +429,18 @@ export default function SettingsPage() {
             <p>Joined: {new Date(user.date_joined).toLocaleDateString()}</p>
             <p>Email verified: {user.is_verified ? '✅ Yes' : '❌ No'}</p>
           </div>
+
+          {!user.is_verified && (
+            <Button
+              onClick={handleResendVerification}
+              disabled={resendingVerification}
+              variant="outline"
+              className="w-full justify-start gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              {resendingVerification ? 'Sending…' : 'Resend Verification Email'}
+            </Button>
+          )}
 
           {/* Export data */}
           <Button
